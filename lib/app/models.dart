@@ -122,16 +122,21 @@ class VerseBookmark {
 enum FontFamily {
   hafs,
   rustam,
+  warsh,
   scheherazade;
 
   static FontFamily get defaultFontFamily => hafs;
   static FontFamily get arabicNumbersFontFamily => scheherazade;
+
+  bool get isHafs => this == hafs;
+  bool get isWarsh => this == warsh;
 
   String get name {
     return switch (this) {
       FontFamily.hafs => 'Hafs',
       FontFamily.rustam => 'Rustam',
       FontFamily.scheherazade => 'Scheherazade',
+      FontFamily.warsh => 'Warsh',
     };
   }
 }

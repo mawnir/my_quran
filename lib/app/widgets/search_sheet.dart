@@ -335,17 +335,18 @@ class _HighlightedText extends StatelessWidget {
 
     // 3. Slice the list
     final displayWords = words.sublist(startIndex);
-
+    final isWarsh = context.fontFamily == FontFamily.warsh.name;
     return RichText(
       textDirection: TextDirection.rtl,
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
       text: TextSpan(
         style: TextStyle(
-          fontSize: 20,
+          fontSize: isWarsh ? 26 : 20,
           color: baseColor,
           height: 1.8,
-          fontFamily: FontFamily.rustam.name,
+          fontWeight: isWarsh ? FontWeight.w500 : null,
+          fontFamily: context.fontFamily,
         ),
         children: [
           if (showStartEllipsis)

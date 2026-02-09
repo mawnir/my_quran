@@ -97,11 +97,13 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
       });
     } else {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Future.delayed(const Duration(milliseconds: 200), () {
-          _pageController.jumpToPage(
-            _currentPositionNotifier.value.pageNumber - 1,
-          );
-        });
+        if (_pageController.hasClients) {
+          Future.delayed(const Duration(milliseconds: 200), () {
+            _pageController.jumpToPage(
+              _currentPositionNotifier.value.pageNumber - 1,
+            );
+          });
+        }
       });
     }
 
@@ -526,7 +528,9 @@ class _QuranPageWidgetState extends State<QuranPageWidget> {
                 children: [
                   if (surah.verses.any((v) => v.number == 1)) ...[
                     _buildHeader(surah),
-                    if (surah.hasBasmala) _buildBasmala(),
+                    if (surah.hasBasmala ||
+                        widget.settingsController.fontFamily.isWarsh)
+                      _buildBasmala(),
                   ],
                   _SurahTextBlock(
                     surahNumber: surah.surahNumber,
@@ -612,16 +616,21 @@ class _QuranPageWidgetState extends State<QuranPageWidget> {
 
   Widget _buildBasmala() {
     final fontSize = (_fontSizeController.surahHeaderFontSize * _scaleFactor)
-        .clamp(0, 30);
-
+        .clamp(0, 50);
+    final text = switch (widget.settingsController.fontFamily) {
+      FontFamily.hafs => Quran.uthmanicHafsBasmala,
+      FontFamily.rustam => Quran.madinaHafsBasmala,
+      FontFamily.warsh => Quran.warshBasmala,
+      FontFamily.scheherazade => Quran.madinaHafsBasmala,
+    };
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Text(
-        Quran.basmala,
+        text,
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: fontSize.toDouble(),
-          fontFamily: FontFamily.rustam.name,
+          fontFamily: widget.settingsController.fontFamily.name,
           letterSpacing: 0,
           fontWeight: FontWeight.w300,
         ),
@@ -755,16 +764,53 @@ class _SurahTextBlockState extends State<_SurahTextBlock> {
     final children = <InlineSpan>[];
     for (final seg in widget.block.segments) {
       final bool isSelected = (selectedVerse == seg.verse);
+      final String fullText = seg.text;
 
-      // Verse text (highlight applies here)
+      // Variable to hold the symbol we will display
+      String displaySymbol;
+      String displayText;
+
+      // WARSH LOGIC
+      if (widget.settingsController.fontFamily == FontFamily.warsh &&
+          fullText.isNotEmpty) {
+        // 1. Extract the last character (The PUA Symbol)
+        // We assume the last char is always the symbol in Warsh data
+        final lastChar = fullText.substring(fullText.length - 1);
+        final textPart = fullText.substring(0, fullText.length - 1).trim();
+
+        // 2. Use the extracted symbol
+        displayText = textPart;
+        displaySymbol = lastChar;
+      } else {
+        // HAFS LOGIC
+        // Use the text as is, and use the generated symbolText
+        displayText = fullText;
+        displaySymbol = seg.symbolText;
+      }
+
+      // 1. Verse Text Span
       children.add(
-        TextSpan(text: seg.text, style: isSelected ? highlightStyle : null),
+        TextSpan(text: displayText, style: isSelected ? highlightStyle : null),
       );
 
-      // End symbol (different font/color)
-      children.add(TextSpan(text: seg.symbolText, style: symbolStyle));
-    }
+      // 2. Spacer
+      children.add(const TextSpan(text: ' '));
 
+      // 3. Symbol Span (Styled)
+      children.add(
+        TextSpan(
+          text: displaySymbol,
+          style: symbolStyle.copyWith(
+            // If Warsh, we must use the Warsh font for the symbol too
+            // otherwise the PUA code might not render or render wrong.
+            fontFamily: widget.settingsController.fontFamily == FontFamily.warsh
+                ? FontFamily.warsh.name
+                : FontFamily.arabicNumbersFontFamily.name,
+          ),
+        ),
+      );
+      children.add(const TextSpan(text: ' '));
+    }
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTapUp: (d) => _handleTap(d.localPosition, false),

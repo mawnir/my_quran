@@ -16,12 +16,14 @@ import 'package:my_quran/quran/quran.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Initialize search index in background
-  unawaited(SearchService.init());
 
   final settingsController = SettingsController(
     settingsService: SettingsService(),
   );
   await settingsController.init();
+
+  unawaited(SearchService.init(settingsController.fontFamily.name));
+
   await Quran.initialize(fontFamily: settingsController.fontFamily);
   await BookmarkService().initialize();
   await FontSizeController().initialize();

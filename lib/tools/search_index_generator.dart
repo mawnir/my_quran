@@ -1,74 +1,82 @@
-// ignore_for_file: avoid_print (needed for debugging)
-
-/*
-# quran-simple-clean.txt comes from https://tanzil.net/download/
-# Quran text type : Simple (Clean)
-# Output file format : Text (with aya numbers)
-# Do not inlucde pause marks, nor sajdah signs, nor rub-el-hizb signs
-# Remove basmalah from the first aya of each sourah except Fatiha
-# Then convert to JSON format.
-*/
+// ignore_for_file: avoid_print
 
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:my_quran/app/search/processor.dart';
 
-/// Generates the search index for the Quran text
+/// Generates search indexes for multiple narrations.
 /// Run with: dart run search_index_generator.dart
 void main() async {
-  print('🔨 Building search index...');
+  // 1. Generate HAFS Index (Combines Uthmani + Simple text for better matching)
+  await _generateIndexForNarration(
+    label: 'HAFS',
+    inputFiles: ['assets/quran.json', 'lib/tools/quran_simple_clean.json'],
+    outputFile: 'assets/search_index_hafs.json',
+  );
 
-  // Load Quran data from both files
-  final quranFile = File('./assets/quran.json');
-  if (!quranFile.existsSync()) {
-    print('❌ Error: assets/quran.json not found');
-    exit(1);
-  }
+  print('------------------------------------------------');
 
-  final quranSimpleFile = File('./lib/tools/quran_simple_clean.json');
-  if (!quranSimpleFile.existsSync()) {
-    print('❌ Error: quran_simple_clean.json not found');
-    exit(1);
-  }
+  // 2. Generate WARSH Index (Uses Warsh text)
+  await _generateIndexForNarration(
+    label: 'WARSH',
+    inputFiles: ['assets/warsh.json'],
+    outputFile: 'assets/search_index_warsh.json',
+  );
+}
 
-  final quranData =
-      jsonDecode(await quranFile.readAsString()) as Map<String, dynamic>;
-  final quranSimpleData =
-      jsonDecode(await quranSimpleFile.readAsString()) as Map<String, dynamic>;
+Future<void> _generateIndexForNarration({
+  required String label,
+  required List<String> inputFiles,
+  required String outputFile,
+}) async {
+  print('🔨 [$label] Building search index...');
 
-  // Build inverted index
   // Map<normalized_word, Set<verse_id>>
   final Map<String, Set<int>> invertedIndex = {};
+  int filesProcessed = 0;
 
-  for (final surahEntry in quranData.entries) {
-    final surahNumber = int.parse(surahEntry.key);
-    final verses = surahEntry.value as Map<String, dynamic>;
-    final versesSimple =
-        quranSimpleData[surahEntry.key] as Map<String, dynamic>?;
+  for (final filePath in inputFiles) {
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      print('⚠️ Warning: $filePath not found. Skipping.');
+      continue;
+    }
 
-    for (final verseEntry in verses.entries) {
-      final verseNumber = int.parse(verseEntry.key);
-      final text = verseEntry.value as String;
-      final textSimple = versesSimple?[verseEntry.key] as String?;
+    print('   📄 Processing $filePath...');
+    final String content = await file.readAsString();
+    final Map<String, dynamic> data =
+        jsonDecode(content) as Map<String, dynamic>;
 
-      // Create unique verse ID: surah * 1000 + verse
-      final verseId = surahNumber * 1000 + verseNumber;
+    // Iterate Surahs
+    for (final surahEntry in data.entries) {
+      final surahNumber = int.parse(surahEntry.key);
+      final verses = surahEntry.value as Map<String, dynamic>;
 
-      // Process primary transcription
-      _processVerseText(text, verseId, invertedIndex);
+      // Iterate Verses
+      for (final verseEntry in verses.entries) {
+        final verseNumber = int.parse(verseEntry.key);
+        final text = verseEntry.value.toString();
 
-      // Process simple transcription
-      if (textSimple != null) {
-        _processVerseText(textSimple, verseId, invertedIndex);
+        // Create unique verse ID
+        final verseId = surahNumber * 1000 + verseNumber;
+
+        // Process text
+        _processVerseText(text, verseId, invertedIndex);
       }
     }
+    filesProcessed++;
+  }
+
+  if (filesProcessed == 0) {
+    print('❌ Error: No input files were processed for $label.');
+    return;
   }
 
   // Sort keys for binary search optimization
   final sortedKeys = invertedIndex.keys.toList()..sort();
 
-  // Convert sets to lists for JSON
+  // Convert sets to sorted lists for JSON
   final indexData = <String, List<int>>{};
   for (final key in sortedKeys) {
     indexData[key] = invertedIndex[key]!.toList()..sort();
@@ -78,12 +86,12 @@ void main() async {
   final output = {'keys': sortedKeys, 'data': indexData};
 
   // Write to file
-  final outputFile = File('assets/search_index.json');
-  await outputFile.writeAsString(jsonEncode(output));
+  final out = File(outputFile);
+  await out.writeAsString(jsonEncode(output));
 
-  print('✅ Search index generated successfully!');
-  print('📊 Total unique words: ${sortedKeys.length}');
-  print('📝 Output: ${outputFile.path}');
+  print('✅ [$label] Index generated!');
+  print('📊 Keywords: ${sortedKeys.length}');
+  print('📝 Output: ${out.path}');
 }
 
 /// Process verse text and add to inverted index
@@ -92,62 +100,63 @@ void _processVerseText(
   int verseId,
   Map<String, Set<int>> invertedIndex,
 ) {
-  // We use the processor's tokenizer, as it only removes punctuation.
+  // Use the tokenizer (handles punctuation removal)
   final tokens = ArabicTextProcessor.tokenize(text);
 
   for (final token in tokens) {
     final Set<String> variantsToNormalize = {};
 
-    // If the raw token contains a dagger alef...
+    // Logic: Handle Dagger Alef variations (Keeping your existing logic)
     if (token.contains('\u0670')) {
-      // ...generate a variant with it replaced by a standard alef...
       variantsToNormalize.add(token.replaceAll('\u0670', 'ا'));
-      // ...and a variant with it simply removed.
       variantsToNormalize.add(token.replaceAll('\u0670', ''));
     } else {
-      // Otherwise, just process the token as is.
       variantsToNormalize.add(token);
     }
 
     // Normalize and index all generated variants
     for (final variant in variantsToNormalize) {
-      final normalized = _normalizeBase(variant); // Using the local function
+      final normalized = _normalizeBase(variant);
       if (normalized.isNotEmpty) {
-        invertedIndex.putIfAbsent(normalized, () => <int>{});
-        invertedIndex[normalized]!.add(verseId);
+        // Validation: Ensure we only index actual Arabic words
+        // This regex allows Arabic letters + Hamza. Excludes numbers/symbols.
+        if (RegExp(r'[\u0621-\u064A]').hasMatch(normalized)) {
+          invertedIndex.putIfAbsent(normalized, () => <int>{});
+          invertedIndex[normalized]!.add(verseId);
+        }
       }
     }
   }
 }
 
 String _normalizeBase(String text) {
-  // Remove punctuation and symbols
-  String normalized = text.replaceAll(
+  // 1. Remove PUA Symbols (Crucial for Warsh!)
+  // Removes End of Ayah marks or custom font glyphs (E000-F8FF)
+  String normalized = text.replaceAll(RegExp(r'[\uE000-\uF8FF]'), '');
+
+  // 2. Remove punctuation and symbols
+  normalized = normalized.replaceAll(
     RegExp(r'[\p{P}\p{S}\p{N}\-\(\)\[\]\{\}]+', unicode: true),
     '',
   );
 
-  // Remove all diacritics (including dagger alef, without replacement)
+  // 3. Remove all diacritics
   normalized = normalized.replaceAll(
     RegExp(r'[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]'),
     '',
   );
 
-  // Normalize Alef variants: أ إ آ ا → ا
+  // 4. Character Normalization
   normalized = normalized.replaceAll(RegExp('[أإآٱ]'), 'ا');
-
-  // Normalize Taa Marbuta: ة → ه
   normalized = normalized.replaceAll('ة', 'ه');
-
-  // Normalize Alef Maksura: ى → ي
   normalized = normalized.replaceAll('ى', 'ي');
 
-  // Normalize Hamza forms
+  // Hamza Normalization (Your Logic)
   normalized = normalized.replaceAll('ؤ', 'و');
   normalized = normalized.replaceAll('ئ', 'ء');
-  normalized = normalized.replaceAll('ء', '');
+  normalized = normalized.replaceAll('ء', ''); // Strip Hamza on line?
 
-  // Remove Tatweel (kashida)
+  // Tatweel
   normalized = normalized.replaceAll('ـ', '');
 
   return normalized.trim();
