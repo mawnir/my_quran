@@ -30,16 +30,22 @@ flutter:
     assets:
         - assets/fonts/
         - assets/quran.json
+        - assets/warsh.json
         - assets/kfgqpc_hafs.json
-        - assets/search_index.json
+        - assets/search_index_hafs.json
+        - assets/search_index_warsh.json
 
     fonts:
         - family: Scheherazade
           fonts:
-              - asset: assets/fonts/subset-ScheherazadeNew.ttf
+            - asset: assets/fonts/subset-ScheherazadeNew.ttf
         - family: Rustam
           fonts:
-              - asset: assets/fonts/rustam_quranR3HOQ.ttf
+            - asset: assets/fonts/rustam_quranR3HOQ.ttf
         - family: Hafs
           fonts:
-              - asset: assets/fonts/HafsSmart.ttf
+            - asset: assets/fonts/HafsSmart.ttf
+        - family: Warsh
+          fonts:
+            - asset: assets/fonts/uthmanic_warsh_v21.ttf
+            

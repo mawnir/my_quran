@@ -10,24 +10,42 @@ class SearchService {
 
   static Map<String, dynamic> _indexData = {};
 
+  // Track current loaded type to avoid reloading the same file
+  static String _currentType = '';
   static bool isReady = false;
 
-  static Future<void> init() async {
-    if (isReady) return;
+  /// Initialize or Switch Index
+  /// [fontFamily]: 'hafs', 'warsh', 'rustam', etc.
+  static Future<void> init(String fontFamily) async {
+    // Determine target file
+    String targetFile;
+    if (fontFamily.toLowerCase() == 'warsh') {
+      targetFile = 'assets/search_index_warsh.json';
+    } else {
+      // Default to Hafs for 'hafs', 'rustam', or anything else
+      targetFile = 'assets/search_index_hafs.json';
+    }
+
+    // Optimization: Don't reload if we already have this index
+    if (isReady && _currentType == targetFile) return;
+
+    isReady = false;
+    _currentType = targetFile;
+
     try {
-      final jsonString = await rootBundle.loadString(
-        'assets/search_index.json',
-      );
+      final jsonString = await rootBundle.loadString(targetFile);
+
+      // Parse in Isolate
       final data = await compute(_parseJson, jsonString);
 
       _sortedKeys = (data['keys'] as List).cast<String>();
-
       _indexData = data['data'] as Map<String, dynamic>;
 
       isReady = true;
-      debugPrint('🔍 Search index loaded ✅');
+      debugPrint('🔍 Search index loaded: $targetFile ✅');
     } catch (e) {
       debugPrint('❌ Error loading search index: $e');
+      isReady = false;
     }
   }
 

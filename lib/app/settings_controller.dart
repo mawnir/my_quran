@@ -1,11 +1,10 @@
+import 'dart:async';
 import 'dart:ui' show FontWeight;
 
 import 'package:flutter/foundation.dart' show ChangeNotifier, debugPrint;
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:my_quran/app/models.dart';
 import 'package:my_quran/app/services/settings_service.dart';
-
-import 'package:my_quran/quran/quran.dart';
 
 class SettingsController extends ChangeNotifier {
   SettingsController({required this.settingsService});
@@ -41,11 +40,11 @@ class SettingsController extends ChangeNotifier {
   }
 
   FontFamily get fontFamily => _fontFamily;
+
   set fontFamily(FontFamily value) {
     _fontFamily = value;
-    notifyListeners();
     settingsService.setFontFamily(value);
-    Quran.useDatasourceForFont(value);
+    notifyListeners();
   }
 
   FontWeight get fontWeight => _fontWeight;

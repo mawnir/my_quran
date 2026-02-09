@@ -16,45 +16,82 @@ class Quran {
   Quran._();
   static final instance = Quran._();
 
+  /// The text displayed to the user (Visual)
   static final data = ValueNotifier<Map<String, dynamic>>({});
+
+  /// The text used for Search Logic (Standard Arabic)
   static late final Map<String, dynamic> _plainTextData;
 
+  // --- ASSET PATHS ---
   static const String _medinaPath = 'assets/quran.json';
   static const String _hafsPath = 'assets/kfgqpc_hafs.json';
+  static const String _warshPath = 'assets/warsh.json';
 
-  static Future<Map<String, dynamic>?> _getQuranData(
-    FontFamily fontFamily,
-  ) async {
+  /// Helper to get the correct path
+  static String _getPathForFont(FontFamily fontFamily) {
+    switch (fontFamily) {
+      case FontFamily.rustam:
+        return _medinaPath;
+      case FontFamily.hafs:
+        return _hafsPath;
+      case FontFamily.warsh:
+        return _warshPath;
+      case FontFamily.scheherazade:
+        return _medinaPath;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> _loadJson(String path) async {
     try {
-      final path = fontFamily == FontFamily.rustam ? _medinaPath : _hafsPath;
       final String jsonString = await rootBundle.loadString(path);
-      return json.decode(jsonString) as Map<String, dynamic>;
+
+      // Parse JSON in a background isolate
+      return await compute(_parseJson, jsonString);
     } catch (e) {
       debugPrint('Error loading Quran JSON: $e');
       return null;
     }
   }
 
+  // Pure function must be static or top-level
+  static Map<String, dynamic> _parseJson(String jsonString) {
+    return json.decode(jsonString) as Map<String, dynamic>;
+  }
+
   static Future<void> initialize({FontFamily? fontFamily}) async {
-    if (await _getQuranData(fontFamily ?? FontFamily.defaultFontFamily)
-        case final Map<String, dynamic> quranData) {
-      data.value = quranData;
-      if (fontFamily == FontFamily.rustam) {
-        _plainTextData = quranData;
+    final font = fontFamily ?? FontFamily.defaultFontFamily;
+
+    // 1. Load the Visual Data (What the user reads in the main view)
+    if (await _loadJson(_getPathForFont(font))
+        case final Map<String, dynamic> loadedData) {
+      data.value = loadedData;
+
+      // 2. Load the Logic Data (For Search Results & Highlighting)
+      if (font == FontFamily.warsh) {
+        // CRITICAL: For Warsh, the "Plain Text" is the Warsh data itself.
+        // We indexed this file, so we must display/highlight this file.
+        _plainTextData = loadedData;
       } else {
-        unawaited(
-          _getQuranData(FontFamily.rustam).then((v) {
-            _plainTextData = v ?? {};
-          }),
-        );
+        // For Hafs/Rustam, we keep using the dedicated plain text file (Medina)
+        // because it's cleaner for search snippets.
+        if (font == FontFamily.rustam) {
+          _plainTextData = loadedData;
+        } else {
+          // If we are in Hafs Uthmani, load the Simple/Medina text for search
+          unawaited(
+            _loadJson(_medinaPath).then((v) {
+              _plainTextData = v ?? {};
+            }),
+          );
+        }
       }
     }
   }
 
   static Future<void> useDatasourceForFont(FontFamily fontFamily) async {
-    if (await _getQuranData(fontFamily)
-        case final Map<String, dynamic> quranData) {
-      data.value = quranData;
+    if (await _loadJson(_getPathForFont(fontFamily))
+        case final Map<String, dynamic> loadedData) {
+      data.value = loadedData;
     }
   }
 
@@ -112,7 +149,13 @@ class Quran {
   static const int totalVerseCount = 6236;
 
   ///The constant 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'
-  static const String basmala = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+  static const String madinaHafsBasmala =
+      'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+
+  static const String warshBasmala =
+      'بِسْمِ اِ۬للَّهِ اِ۬لرَّحْمَٰنِ اِ۬لرَّحِيمِ';
+
+  static const String uthmanicHafsBasmala = '‏ ‏‏ ‏‏‏‏ ‏‏‏‏‏‏ ‏';
 
   ///The constant 'سَجْدَةٌ'
   static const String sajdah = 'سَجْدَةٌ';
