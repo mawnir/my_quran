@@ -14,6 +14,7 @@ class BookmarksScreen extends StatefulWidget {
     required this.settingsController,
     required this.onNavigateToPage,
     super.key,
+    this.onBookmarkChanged,
   });
   final void Function({
     required int page,
@@ -22,6 +23,7 @@ class BookmarksScreen extends StatefulWidget {
   })
   onNavigateToPage;
   final SettingsController settingsController;
+  final VoidCallback? onBookmarkChanged;
 
   @override
   State<BookmarksScreen> createState() => _BookmarksScreenState();
@@ -39,6 +41,12 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  /// Reload data and notify parent that bookmarks changed.
+  Future<void> _reloadAndNotify() async {
+    await _load();
+    widget.onBookmarkChanged?.call();
   }
 
   Future<void> _load() async {
@@ -253,7 +261,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     return Dismissible(
       key: Key(bookmark.id),
       direction: DismissDirection.endToStart,
-      confirmDismiss: (_) => _confirmDelete(context, bookmark),
+      confirmDismiss: (_) => _deleteBookmark(bookmark),
       background: Container(
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 24),
@@ -497,7 +505,8 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     final updatedNote = result.trim();
     final updated = bookmark.copyWith(note: () => updatedNote);
     await _bookmarkService.updateBookmark(updated);
-    await _load();
+
+    await _reloadAndNotify();
   }
 
   Future<void> _changeCategory(VerseBookmark bookmark) async {
@@ -553,7 +562,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
     final updated = bookmark.copyWith(categoryId: () => result);
     await _bookmarkService.updateBookmark(updated);
-    await _load();
+    await _reloadAndNotify();
 
     if (mounted) {
       ScaffoldMessenger.of(
@@ -562,17 +571,18 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     }
   }
 
-  Future<void> _deleteBookmark(VerseBookmark bookmark) async {
+  Future<bool?> _deleteBookmark(VerseBookmark bookmark) async {
     final confirmed = await _confirmDelete(context, bookmark);
     if (confirmed ?? false) {
       await _bookmarkService.removeBookmarkById(bookmark.id);
-      await _load();
+      await _reloadAndNotify();
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('تمت إزالة العلامة')));
       }
     }
+    return confirmed ?? false;
   }
 
   Future<bool?> _confirmDelete(
@@ -622,7 +632,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
       ),
     );
     // Reload in case categories changed
-    await _load();
+    await _reloadAndNotify();
   }
 
   String _formatDate(DateTime date) {

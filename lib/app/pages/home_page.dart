@@ -305,6 +305,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   context,
                   MaterialPageRoute<void>(
                     builder: (_) => BookmarksScreen(
+                      onBookmarkChanged: () => bookmarkRevision.value++,
                       settingsController: widget.settingsController,
                       onNavigateToPage:
                           ({
