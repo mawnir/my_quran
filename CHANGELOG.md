@@ -1,3 +1,10 @@
+### v1.5.0
+
+- FEAT: Add bookmark categories with colors
+- FEAT: Visual indicators on bookmarked verse numbers
+- FEAT: New bookmarks screen with category filtering
+- PERF: Page rendering performance improvements
+
 ### v1.4.3
 
 - FIX: Navigation to a specific verse, surah, or page in Book Mode.
