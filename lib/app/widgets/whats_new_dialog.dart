@@ -1,19 +1,22 @@
+// GENERATED — DO NOT EDIT BY HAND
+// Run: dart run scripts/update_whats_new.dart
+// Version: 1.4.4 | Generated: 2026-02-21T14:55:24.162202
+
 import 'package:flutter/material.dart';
-import 'package:my_quran/app/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// ignore_for_file: lines_longer_than_80_chars ()
 
 class WhatsNewDialog extends StatelessWidget {
   const WhatsNewDialog({super.key});
 
-  static const String _currentVersion = '1.5.0'; // update per release
+  static const String _currentVersion = '1.4.4';
   static const String _seenKey = 'whats_new_seen_version';
 
-  /// Call this on app startup. Shows dialog only once per version.
   static Future<void> showIfNeeded(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     final seenVersion = prefs.getString(_seenKey);
     if (seenVersion == _currentVersion) return;
-
     if (!context.mounted) return;
 
     await showDialog(
@@ -33,122 +36,369 @@ class WhatsNewDialog extends StatelessWidget {
       textDirection: TextDirection.rtl,
       child: Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 380),
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 400,
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.auto_awesome,
+                        size: 28,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'ما الجديد؟',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Flexible(
                 child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // ── Header icon ──
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.auto_awesome,
-                          size: 32,
-                          color: colorScheme.onPrimaryContainer,
-                        ),
+                      _VersionSection(
+                        version: '1.4.4',
+                        isCurrent: true,
+                        entries: [
+                          _ChangeEntry(
+                            text:
+                                'رواية ورش عن نافع: دعم كامل لرواية ورش بالرسم العثماني المخصص، مع ضبط فواصل الآيات والترقيم الخاص بالرواية.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'إمكانية التبديل بين روايتي "حفص" و "ورش" بسهولة من الإعدادات.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-
-                      // ── Title ──
-                      Text(
-                        'ما الجديد؟',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                      _VersionSection(
+                        version: '1.4.3',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text:
+                                'إصلاح: الانتقال إلى آية أو سورة أو صفحة معينة في وضع الكتاب.',
+                            icon: Icons.bug_report,
+                            color: Colors.red,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'إصلاح: استعادة آخر موضع قراءة الآن بشكل صحيح عند فتح التطبيق في وضع الكتاب.',
+                            icon: Icons.bug_report,
+                            color: Colors.red,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'ميزة: الحفاظ على موضع القراءة عند التبديل بين وضع الكتاب والوضع العادي.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'الإصدار $_currentVersion',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                      _VersionSection(
+                        version: '1.4.2',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text: 'إضافة وضع الكتاب للتنقل بين الصفحات بالسحب.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'إضافة خيار اللون الأسود الحقيقي لشاشات OLED.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'إصلاح: خطأ إملائي في الآية 46 من سورة الأعراف.',
+                            icon: Icons.text_fields,
+                            color: Colors.red,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 24),
-
-                      // ── Feature 1: Bookmark Categories ──
-                      const _FeatureItem(
-                        icon: Icons.bookmarks,
-                        iconColor: Colors.orange,
-                        title: 'تصنيفات العلامات المرجعية',
-                        description:
-                            'نظّم علاماتك المرجعية في تصنيفات مخصصة '
-                            'بألوان مختلفة مثل: حفظ، مراجعة، تفسير، '
-                            'أو أي تصنيف تختاره.',
+                      _VersionSection(
+                        version: '113',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text: 'إضافة وضع الكتاب للتنقل بين الصفحات بالسحب.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'إضافة خيار اللون الأسود الحقيقي لشاشات OLED.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'إصلاح: خطأ إملائي في الآية 46 من سورة الأعراف.',
+                            icon: Icons.text_fields,
+                            color: Colors.red,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-
-                      // ── Feature 2: Notes ──
-                      const _FeatureItem(
-                        icon: Icons.edit_note,
-                        iconColor: Colors.teal,
-                        title: 'ملاحظات على الآيات',
-                        description:
-                            'أضف ملاحظاتك الخاصة على أي آية. '
-                            'سجّل أفكارك وتأملاتك أثناء القراءة.',
+                      _VersionSection(
+                        version: '1.3.0',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text:
+                                'أصبح التطبيق متاحًا الآن كتطبيق ويب تقدمي (PWA)!',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text: 'إصلاح مشكلة عدم تطبيق إعدادات سماكة الخط.',
+                            icon: Icons.text_fields,
+                            color: Colors.red,
+                          ),
+                          _ChangeEntry(
+                            text: 'إصلاح مشكلة الخط في النصوص المنسوخة.',
+                            icon: Icons.text_fields,
+                            color: Colors.red,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'إضافة زر "انتقال" لتسهيل التنقل عند استخدام نوافذ الانتقال.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text: 'تصميم جديد ومحسّن لنافذة خيارات الآية.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text: 'تحسينات عامة على أداء التطبيق وسرعته.',
+                            icon: Icons.speed,
+                            color: Colors.blue,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-
-                      // ── Feature 3: Visual Indicators ──
-                      const _FeatureItem(
-                        icon: Icons.visibility,
-                        iconColor: Colors.purple,
-                        title: 'مؤشرات بصرية',
-                        description:
-                            'يظهر لون التصنيف على رقم الآية. '
-                            'وللآيات التي تحتوي ملاحظات يظهر خط أسفل الرقم.',
+                      _VersionSection(
+                        version: '1.2.5',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text:
+                                'إضافة نص القرآن الكريم بخط حفص بالرسم العثماني(على رواية حفص).',
+                            icon: Icons.text_fields,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'إصلاح مشكلة ظهور فجوات بين الكلمات عند تكبير الخط.',
+                            icon: Icons.text_fields,
+                            color: Colors.red,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'يمكنك الآن النقر مباشرة على العناصر في عجلات التنقل لتحديدها.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'النقر على السورة أو الجزء أو الصفحة في الترويسة المثبتة سيفتح مربع حوار إدخال للتنقل السريع إلى السورة/الجزء/الصفحة.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-
-                      // ── How to use hint ──
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.touch_app_outlined,
-                              size: 20,
-                              color: colorScheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'اضغط مطولاً على أي آية لإضافة علامة أو ملاحظة.',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
-                                      height: 1.5,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      _VersionSection(
+                        version: '1.2.4',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text:
+                                'ميزة: إضافة خيار إظهار نتائج البحث المطابقة فقط',
+                            icon: Icons.search,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'إصلاح: قص بداية الآيات الطويلة تلقائياً لضمان ظهور الكلمة المبحوث عنها في المعاينة',
+                            icon: Icons.bug_report,
+                            color: Colors.red,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'بالإضافة إلى تحسينات طفيفة في أداء التطبيق بشكل عام.',
+                            icon: Icons.speed,
+                            color: Colors.blue,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 24),
+                      _VersionSection(
+                        version: '1.2.3',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text:
+                                'FIX: reproducible build is failing due to Flutter SDK mismatch',
+                            icon: Icons.bug_report,
+                            color: Colors.red,
+                          ),
+                        ],
+                      ),
+                      _VersionSection(
+                        version: '1.2.2',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text: 'إصلاح عدد الآيات في ترويسة السورة',
+                            icon: Icons.bug_report,
+                            color: Colors.red,
+                          ),
+                        ],
+                      ),
+                      _VersionSection(
+                        version: '1.2.1',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text:
+                                'build: update the release workflow to support reproducible builds on F-Droid',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                        ],
+                      ),
+                      _VersionSection(
+                        version: '1.2.0',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text:
+                                'تقليل حجم الفهرس  عن طريق استبعاد الرموز القرآنية، علامات الترقيم، والأرقام من الفهرس',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text: 'تحسين دقة نتائج البحث',
+                            icon: Icons.search,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'إصلاح مشكلة عدم ظهور نتائج عند البحث عن بعض الكلمات مثل لفظ الجلالة (الله)',
+                            icon: Icons.search,
+                            color: Colors.red,
+                          ),
+                          _ChangeEntry(
+                            text: 'تحسينات أخرى:',
+                            icon: Icons.trending_up,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text: 'استخدام تأثير الزجاج للزر العائم',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text: 'زيادة حجم فواصل الآيات',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                        ],
+                      ),
+                      _VersionSection(
+                        version: '1.1.0',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text:
+                                'يقدم هذا الإصدار إعادة تصميم للصفحة الرئيسية.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text: 'التغييرات الرئيسية تشمل:',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'تم استبدال شريط التنقل السفلي بزر عائم للوصول',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text: 'السريع إلى التنقل السريع.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'يتميز شريط التطبيق الآن بأيقونات مخصصة للبحث والإشارات المرجعية،',
+                            icon: Icons.bookmarks,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'مما يحسن إمكانية الوصول إلى هذه الميزات الأساسية.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                          _ChangeEntry(
+                            text:
+                                'تم إعادة تصميم واجهة التنقل السريع لتجربة مستخدم أكثر سهولة.',
+                            icon: Icons.auto_awesome,
+                            color: Colors.blue,
+                          ),
+                        ],
+                      ),
+                      _VersionSection(
+                        version: '1.0.1',
+                        isCurrent: false,
+                        entries: [
+                          _ChangeEntry(
+                            text:
+                                'إعطاء الألف الخنجرية مساحة أكبر في نص القرآن لتحسين القراءة.',
+                            icon: Icons.trending_up,
+                            color: Colors.blue,
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ),
-              // ── Dismiss button ──
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('فهمت، شكراً'),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('فهمت، شكراً'),
+                  ),
                 ),
               ),
             ],
@@ -159,56 +409,102 @@ class WhatsNewDialog extends StatelessWidget {
   }
 }
 
-class _FeatureItem extends StatelessWidget {
-  const _FeatureItem({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.description,
+class _VersionSection extends StatelessWidget {
+  const _VersionSection({
+    required this.version,
+    required this.isCurrent,
+    required this.entries,
   });
 
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String description;
+  final String version;
+  final bool isCurrent;
+  final List<_ChangeEntry> entries;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: iconColor.applyOpacity(0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, size: 22, color: iconColor),
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: ExpansionTile(
+        key: isCurrent ? const Key('current_version') : null,
+        initiallyExpanded: isCurrent,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+        childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        collapsedShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                description,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  height: 1.5,
+        title: Row(
+          children: [
+            Text(
+              'v$version',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            if (isCurrent) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'الحالي',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
-          ),
+          ],
         ),
-      ],
+        children: [
+          for (final entry in entries)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: entry.color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(entry.icon, size: 18, color: entry.color),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        entry.text,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
+}
+
+class _ChangeEntry {
+  const _ChangeEntry({
+    required this.text,
+    required this.icon,
+    required this.color,
+  });
+
+  final String text;
+  final IconData icon;
+  final Color color;
 }
