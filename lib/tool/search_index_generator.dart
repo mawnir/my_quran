@@ -11,7 +11,7 @@ void main() async {
   // 1. Generate HAFS Index (Combines Uthmani + Simple text for better matching)
   await _generateIndexForNarration(
     label: 'HAFS',
-    inputFiles: ['assets/quran.json', 'lib/tools/quran_simple_clean.json'],
+    inputFiles: ['assets/quran.json', 'lib/tool/quran_simple_clean.json'],
     outputFile: 'assets/search_index_hafs.json',
   );
 
