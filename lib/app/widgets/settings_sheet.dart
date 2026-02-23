@@ -40,17 +40,13 @@ class SettingsSheet extends StatelessWidget {
       ),
     );
 
-    return DefaultTextStyle(
-      style: context.textTheme.bodyMedium!.copyWith(
-        color: context.colorScheme.onSurface,
-      ),
+    return SafeArea(
       child: ListenableBuilder(
         listenable: Listenable.merge([fontController, settingsController]),
         builder: (context, _) {
           final isWarsh = settingsController.fontFamily == FontFamily.warsh;
-
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
               // ── FONT SIZE ──
               _buildSectionTitle('حجم الخط'),
@@ -128,6 +124,7 @@ class SettingsSheet extends StatelessWidget {
               ),
               // ── FONT TYPE (Hafs only) ──
               if (!isWarsh) ...[
+                const SizedBox(height: 16),
                 _buildSectionTitle('نوع الخط'),
                 SizedBox(
                   width: double.infinity,

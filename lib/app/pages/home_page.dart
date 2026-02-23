@@ -258,8 +258,8 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
     return Scaffold(
       extendBodyBehindAppBar: true,
       floatingActionButton: FloatingActionButton(
-        // backgroundColor: themeColors.surfaceContainer,
-        // foregroundColor: themeColors.text,
+        backgroundColor: context.colorScheme.surfaceContainer,
+        foregroundColor: context.colorScheme.primary,
         elevation: 4,
         onPressed: () => showModalBottomSheet(
           context: context,
@@ -368,7 +368,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
             onPressed: () {
               showModalBottomSheet(
                 context: context,
-                showDragHandle: true,
+                showDragHandle: false,
                 barrierColor: Colors.transparent,
                 builder: (context) {
                   final fontController = FontSizeController();
