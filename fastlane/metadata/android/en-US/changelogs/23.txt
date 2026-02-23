@@ -1,0 +1,1 @@
+Added spacing for dagger-aleph in Quran text to improve readability.

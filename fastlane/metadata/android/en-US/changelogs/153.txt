@@ -1,0 +1,5 @@
+- New bookmark system with customizable categories and colors
+- Add personal notes to any verse
+- Bookmarked verse numbers now reflect category colors with note indicators
+- Dedicated bookmarks screen with category filtering
+- Redesigned verse menu for a faster and simpler experience

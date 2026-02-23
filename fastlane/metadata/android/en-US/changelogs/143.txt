@@ -1,0 +1,2 @@
+- Warsh Narration Support: Complete support for the Warsh 'an Nafi' narration with an Uthmanic Font.
+- Easily switch between "Hafs" and "Warsh" directly from Settings.

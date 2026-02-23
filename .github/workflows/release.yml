@@ -1,0 +1,202 @@
+name: Build & Release
+
+permissions:
+    contents: write
+
+on:
+    workflow_dispatch:
+        inputs:
+            tag_name:
+                description: "The tag name for the release (e.g., v1.0.0)"
+                required: true
+                type: string
+            prerelease:
+                description: "Set to true for a pre-release"
+                required: false
+                type: boolean
+                default: false
+            draft:
+                description: "Set to true to create a draft release"
+                required: false
+                type: boolean
+                default: false
+    push:
+        tags:
+            - "v*"
+
+concurrency:
+    group: "pages"
+    cancel-in-progress: true
+
+jobs:
+    get-version-info:
+        runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.version.outputs.version }}
+            build_number: ${{ steps.version.outputs.build_number }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Get version from tag
+              id: version
+              run: |
+                  version=${GITHUB_REF#refs/tags/}
+                  echo "version=$version" >> $GITHUB_OUTPUT
+                  echo "Release version: $version"
+                  BUILD_NUMBER=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+                  BUILD_NUMBER=$((BUILD_NUMBER * 10 + 3))
+                  echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+    build:
+        name: Build Release APKs
+        needs: [get-version-info]
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Checkout reproducible-apk-tools
+              uses: actions/checkout@v4
+              with:
+                  repository: obfusk/reproducible-apk-tools
+                  ref: v0.3.0
+                  path: reproducible-apk-tools
+
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.x"
+
+            - name: Setup Java
+              uses: actions/setup-java@v4
+              with:
+                  distribution: "temurin"
+                  java-version: "17"
+
+            - name: Setup Flutter
+              uses: subosito/flutter-action@v2
+              with:
+                  channel: "stable"
+                  flutter-version-file: pubspec.yaml
+                  cache: true
+
+            - name: Flutter Doctor
+              id: flutter_doctor
+              run: |
+                  flutter doctor -v
+
+            - name: Get Dependencies
+              run: flutter pub get
+
+            # --- SIGNING SETUP ---
+            - name: Decode Keystore
+              run: |
+                  echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+
+            - name: Create key.properties
+              run: |
+                  echo "storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}" > android/key.properties
+                  echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> android/key.properties
+                  echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/key.properties
+                  echo "storeFile=upload-keystore.jks" >> android/key.properties
+
+            # --- BUILD APKs ---
+            - name: Build Split APKs
+              run: flutter build apk --release --split-per-abi
+            - name: Zipalign and Resign APKs
+              run: |
+                  # 1. Dynamically find the latest version of apksigner
+                  # We look inside build-tools, sort in reverse to get the highest version, and pick the top one.
+                  APKSIGNER=$(find $ANDROID_HOME/build-tools -name "apksigner" | sort -r | head -n 1)
+
+                  if [ -z "$APKSIGNER" ]; then
+                    echo "Error: apksigner not found in $ANDROID_HOME/build-tools"
+                    exit 1
+                  fi
+
+                  echo "Using apksigner: $APKSIGNER"
+
+                  cd build/app/outputs/apk/release
+
+                  for apk in *.apk; do
+                    # --- Step A: Zipalign ---
+                    mv "$apk" "${apk%.apk}-unaligned.apk"
+
+                    python3 ${{ github.workspace }}/reproducible-apk-tools/zipalign.py \
+                      --page-size 16 \
+                      --pad-like-apksigner \
+                      --replace \
+                      "${apk%.apk}-unaligned.apk" \
+                      "$apk"
+
+                    rm "${apk%.apk}-unaligned.apk"
+
+                    # --- Step B: Resign the APK ---
+                    # Make sure your keystore path and secret names match your repo setup
+
+                    "$APKSIGNER" sign \
+                      --ks ${{ github.workspace }}/android/app/upload-keystore.jks \
+                      --ks-pass pass:${{ secrets.ANDROID_STORE_PASSWORD }} \
+                      --key-pass pass:${{ secrets.ANDROID_KEY_PASSWORD }} \
+                      --ks-key-alias ${{ secrets.ANDROID_KEY_ALIAS }} \
+                      "$apk"
+
+                     # Verify it
+                     "$APKSIGNER" verify --verbose "$apk"
+                  done
+
+            # --- PUBLISH ---
+            - name: Create Release
+              uses: ncipollo/release-action@v1
+              with:
+                  tag: ${{ github.event.inputs.tag_name }}
+                  prerelease: ${{ github.event.inputs.prerelease }}
+                  draft: ${{ github.event.inputs.draft }}
+                  bodyFile: fastlane/metadata/android/en-US/changelogs/${{ needs.get-version-info.outputs.build_number }}.txt
+                  artifacts: "build/app/outputs/apk/release/*.apk"
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+    build_web_artifact:
+        name: Build Web Artifact
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Flutter
+              uses: subosito/flutter-action@v2
+              with:
+                  channel: "stable"
+                  flutter-version-file: pubspec.yaml
+                  cache: true
+
+            - name: Get Dependencies
+              run: flutter pub get
+
+            - name: Configure GitHub Pages
+              id: pages
+              uses: actions/configure-pages@v4
+
+            - name: Build Web App
+              run: flutter build web --pwa-strategy=offline-first --base-href "${{ steps.pages.outputs.base_path }}/"
+
+            - name: Upload GitHub Pages artifact
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: "./build/web"
+
+    deploy_pages:
+        needs: build_web_artifact
+        name: Deploy to GitHub Pages
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        runs-on: ubuntu-latest
+        permissions:
+            pages: write
+            id-token: write
+        steps:
+            - name: Deploy to GitHub Pages
+              id: deployment
+              uses: actions/deploy-pages@v4

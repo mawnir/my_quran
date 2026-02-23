@@ -1,0 +1,11 @@
+This version introduces a major redesign of the home page.
+
+Key changes include:
+- Replaced the bottom navigation bar with a FloatingActionButton for
+  quick access to the redesigned navigation sheet.
+- The AppBar now features dedicated icons for search and bookmarks,
+  improving accessibility to these core features.
+- The navigation sheet has been refactored for a more intuitive
+  user experience, including a simplified debouncing mechanism.
+- Various styling adjustments to the surah header and basmala for
+  improved aesthetics.

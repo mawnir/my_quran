@@ -1,0 +1,5 @@
+FIX: search, text sizer and navigation sheets are covered by on-screen navigation buttons
+FEAT: add exact match search
+FEAT: In search result card, implement text truncation for long verses to ensure the matching word is visible
+
+and other small improvements for the overall app performance.

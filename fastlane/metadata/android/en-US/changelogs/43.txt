@@ -1,0 +1,8 @@
+- Improve search index through filtering out Quranic symbols, punctuation, and numbers
+ resulting in a smaller index size.
+- Fixed issue where searching for some words won't return any results, for example:
+the word "Allah".
+
+Other:
+- Use glass effect for FAB
+- Increase verseEndSymbol font size
