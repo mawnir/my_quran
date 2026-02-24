@@ -153,7 +153,6 @@ jobs:
                   tag: ${{ github.event.inputs.tag_name }}
                   prerelease: ${{ github.event.inputs.prerelease }}
                   draft: ${{ github.event.inputs.draft }}
-                  bodyFile: fastlane/metadata/android/en-US/changelogs/${{ needs.get-version-info.outputs.build_number }}.txt
                   artifacts: "build/app/outputs/apk/release/*.apk"
                   token: ${{ secrets.GITHUB_TOKEN }}
 

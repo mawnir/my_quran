@@ -79,14 +79,15 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
 
     try {
       final url = Uri.parse(
-        'http://api.quran-tafseer.com/tafseer/1/'
-        '${widget.surah}/${widget.verse.number}',
+        'https://api.alquran.cloud/v1/ayah/'
+        '${widget.surah}:${widget.verse.number}/ar.muyassar',
       );
       final response = await http.get(url).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final text = (data['data'] as Map<String, dynamic>?)?['text'] as String? ?? '';
         setState(() {
-          _tafseerText = data['text'] as String? ?? '';
+          _tafseerText = text;
           _tafseerLoading = false;
         });
       } else {
