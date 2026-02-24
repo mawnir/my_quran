@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
@@ -12,7 +13,7 @@ class AudioService {
   AudioPlayer get player => _player;
 
   int? _currentSurahId;
-  bool _isInitialized = false;
+  Completer<void>? _initCompleter;
 
   final ValueNotifier<AudioMetadata?> metadata = ValueNotifier(null);
 
@@ -35,6 +36,8 @@ class AudioService {
   /// Loads the correct audio source based on the current metadata.
   /// Call this only when the user explicitly opens the player sheet.
   Future<void> loadAudioForCurrentSurah() async {
+    await init();
+
     final meta = metadata.value;
     if (meta == null) return;
 
@@ -53,7 +56,17 @@ class AudioService {
     try {
       debugPrint('AudioService: Loading Surah $surahNumber ($url)');
       await _player.stop();
-      await _player.setUrl(url);
+      await _player.setAudioSource(
+        AudioSource.uri(
+          Uri.parse(url),
+          tag: AudioMetadata(
+            surahNumber: surahNumber,
+            verseNumber: meta.verseNumber,
+            surahName: meta.surahName,
+            arabicName: meta.arabicName,
+          ),
+        ),
+      );
     } catch (e) {
       debugPrint("Error loading audio for surah $surahNumber: $e");
       _currentSurahId = null; // Allow retry
@@ -61,13 +74,17 @@ class AudioService {
   }
 
   Future<void> init() async {
-    if (_isInitialized) return;
+    if (_initCompleter != null) return _initCompleter!.future;
 
-    final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.speech());
-    _isInitialized = true;
-
-    // Initial load will happen via updateMetadata call from HomePage
+    _initCompleter = Completer<void>();
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.speech());
+      _initCompleter!.complete();
+    } catch (e) {
+      debugPrint("Error initializing AudioSession: $e");
+      _initCompleter!.complete(); // Still complete to unblock, or maybe throw?
+    }
   }
 
   Stream<PositionData> get positionDataStream =>
