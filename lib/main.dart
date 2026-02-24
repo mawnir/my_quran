@@ -16,9 +16,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Initialize search index in background
 
-  final settingsController = SettingsController(
-    settingsService: SettingsService(),
-  );
+  final settingsController = SettingsController(settingsService: SettingsService());
   await settingsController.init();
 
   unawaited(SearchService.init(settingsController.fontFamily.name));
@@ -65,9 +63,7 @@ class MyApp extends StatelessWidget {
             fontFamily: FontFamily.hafs.name,
             colorScheme: ColorScheme.fromSeed(
               brightness: Brightness.dark,
-              surface: settingsController.useTrueBlackBgColor
-                  ? const Color(0xFF000000)
-                  : null,
+              surface: settingsController.useTrueBlackBgColor ? const Color(0xFF000000) : null,
               seedColor: seedColor,
             ),
           ),
