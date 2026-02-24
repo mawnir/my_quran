@@ -96,6 +96,20 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  void _showVerseMenu(int surah, int verseNumber) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => Dialog(
+        child: VerseMenuDialog(
+          surah: surah,
+          verse: (number: verseNumber, text: Quran.instance.getVerse(surah, verseNumber)),
+        ),
+      ),
+    ).then((_) {
+      bookmarkRevision.value++;
+    });
+  }
+
   void _onScrollingModeChanged() {
     final newIsHorizontalScrolling = widget.settingsController.isHorizontalScrolling;
     if (!newIsHorizontalScrolling && _isHorizontalScrolling) {
@@ -312,6 +326,17 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
         elevation: 0,
         flexibleSpace: Container(decoration: appBarDecoration),
         actions: [
+          ValueListenableBuilder(
+            valueListenable: _highlightedVerseNotifier,
+            builder: (context, highlight, _) {
+              if (highlight == null) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.info_outline),
+                tooltip: 'خيارات الآية',
+                onPressed: () => _showVerseMenu(highlight.surah, highlight.verse),
+              );
+            },
+          ),
           IconButton(
             onPressed: widget.settingsController.toggleTheme,
             icon: Icon(switch (widget.settingsController.themeMode) {
@@ -391,6 +416,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         highlightedVerseListenable: _highlightedVerseNotifier,
                         settingsController: widget.settingsController,
                         onVerseTap: _onVerseTapped,
+                        onVerseLongTap: _showVerseMenu,
                         bookmarkRevision: bookmarkRevision,
                         onBookmarkChanged: () => bookmarkRevision.value++,
                       ),
@@ -414,6 +440,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       highlightedVerseListenable: _highlightedVerseNotifier,
                       settingsController: widget.settingsController,
                       onVerseTap: _onVerseTapped,
+                      onVerseLongTap: _showVerseMenu,
                       bookmarkRevision: bookmarkRevision,
                       onBookmarkChanged: () => bookmarkRevision.value++,
                     ),
@@ -444,6 +471,7 @@ class QuranPageWidget extends StatefulWidget {
     required this.highlightedVerseListenable,
     required this.bookmarkRevision,
     this.onVerseTap,
+    this.onVerseLongTap,
     this.onBookmarkChanged,
     super.key,
   });
@@ -452,6 +480,7 @@ class QuranPageWidget extends StatefulWidget {
   final ValueListenable<({int surah, int verse})?> highlightedVerseListenable;
   final ValueListenable<int> bookmarkRevision;
   final void Function(int surah, int verse)? onVerseTap;
+  final void Function(int surah, int verse)? onVerseLongTap;
   final VoidCallback? onBookmarkChanged;
   final SettingsController settingsController;
 
@@ -512,18 +541,8 @@ class _QuranPageWidgetState extends State<QuranPageWidget> {
   void _onVerseInteraction(int surah, int verseNumber, {required bool isLongPress}) {
     widget.onVerseTap?.call(surah, verseNumber);
 
-    if (isLongPress && context.mounted) {
-      showDialog<void>(
-        context: context,
-        builder: (_) => Dialog(
-          child: VerseMenuDialog(
-            surah: surah,
-            verse: (number: verseNumber, text: Quran.instance.getVerse(surah, verseNumber)),
-          ),
-        ),
-      ).then((_) {
-        widget.onBookmarkChanged?.call();
-      });
+    if (isLongPress) {
+      widget.onVerseLongTap?.call(surah, verseNumber);
     }
   }
 
@@ -920,6 +939,7 @@ class _SurahTextBlockState extends State<_SurahTextBlock> {
       behavior: HitTestBehavior.translucent,
       onTapUp: (d) => _handleTap(d.localPosition, false),
       onLongPressStart: (d) => _handleTap(d.localPosition, true),
+      onSecondaryTapUp: (d) => _handleTap(d.localPosition, true),
       child: RichText(
         key: _textKey,
         textAlign: _calculateAlignment(),

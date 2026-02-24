@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:my_quran/app/widgets/edit_note_dialog.dart';
 
 import 'package:my_quran/quran/quran.dart';
@@ -19,18 +22,20 @@ class VerseMenuDialog extends StatefulWidget {
 
 class _VerseMenuDialogState extends State<VerseMenuDialog> {
   late final bookmarkService = BookmarkService();
-  late bool isBookmarked = bookmarkService.isBookmarked(
-    widget.surah,
-    widget.verse.number,
-  );
+  late bool isBookmarked = bookmarkService.isBookmarked(widget.surah, widget.verse.number);
   late VerseBookmark? bookmark = bookmarkService.getBookmarkFor(
     widget.surah,
     widget.verse.number,
   );
-  late final List<BookmarkCategory> categories = bookmarkService
-      .getCategoriesSync();
+  late final List<BookmarkCategory> categories = bookmarkService.getCategoriesSync();
 
   BookmarkCategory? currentCategory;
+
+  // ── Tafseer state ──
+  bool _showTafseer = false;
+  bool _tafseerLoading = false;
+  String? _tafseerText;
+  String? _tafseerError;
 
   @override
   void initState() {
@@ -41,9 +46,7 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
   void _syncCategory() {
     if (isBookmarked && bookmark?.categoryId != null) {
       try {
-        currentCategory = categories.firstWhere(
-          (c) => c.id == bookmark!.categoryId,
-        );
+        currentCategory = categories.firstWhere((c) => c.id == bookmark!.categoryId);
       } catch (_) {
         currentCategory = null;
       }
@@ -52,8 +55,61 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
     }
   }
 
-  /// Default category for new bookmarks created via the note flow.
   String? get _defaultCategoryId => categories.firstOrNull?.id;
+
+  // ── Toggle tafseer / verse ──
+  Future<void> _toggleTafseer() async {
+    if (_showTafseer) {
+      setState(() => _showTafseer = false);
+      return;
+    }
+
+    // Already fetched — just show it.
+    if (_tafseerText != null) {
+      setState(() => _showTafseer = true);
+      return;
+    }
+
+    // Fetch for the first time.
+    setState(() {
+      _showTafseer = true;
+      _tafseerLoading = true;
+      _tafseerError = null;
+    });
+
+    try {
+      final url = Uri.parse(
+        'http://api.quran-tafseer.com/tafseer/1/'
+        '${widget.surah}/${widget.verse.number}',
+      );
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        setState(() {
+          _tafseerText = data['text'] as String? ?? '';
+          _tafseerLoading = false;
+        });
+      } else {
+        setState(() {
+          _tafseerError = 'خطأ في الاتصال (${response.statusCode})';
+          _tafseerLoading = false;
+        });
+      }
+    } catch (_) {
+      setState(() {
+        _tafseerError = 'تعذّر تحميل التفسير. يرجى التحقق من الاتصال بالإنترنت.';
+        _tafseerLoading = false;
+      });
+    }
+  }
+
+  Future<void> _retryTafseer() async {
+    setState(() {
+      _tafseerText = null;
+      _tafseerError = null;
+    });
+    await _toggleTafseer();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +121,7 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
           return ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: 340,
-              maxHeight: MediaQuery.of(context).size.height * 0.6,
+              maxHeight: MediaQuery.of(context).size.height * 0.65,
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
@@ -75,14 +131,9 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                 bottomNavigationBar: Container(
                   decoration: BoxDecoration(
                     color: colorScheme.surfaceContainerHighest,
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(16),
-                    ),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 6,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                   child: Row(
                     children: [
                       _ActionButton(
@@ -90,12 +141,20 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                         label: 'نسخ',
                         onTap: () => _copyVerse(context),
                       ),
+                      // ── Tafseer toggle button ──
+                      _ActionButton(
+                        icon: _showTafseer
+                            ? Icons.menu_book_outlined
+                            : Icons.auto_stories_outlined,
+                        label: _showTafseer ? 'الآية' : 'تفسير',
+                        isSelected: _showTafseer,
+                        onTap: _toggleTafseer,
+                      ),
                       _BookmarkActionButton(
                         isBookmarked: isBookmarked,
                         currentCategory: currentCategory,
                         categories: categories,
-                        onCategorySelected: (cat) =>
-                            _onCategorySelected(context, cat),
+                        onCategorySelected: (cat) => _onCategorySelected(context, cat),
                         onRemove: () => _onRemoveBookmark(context),
                       ),
                       _ActionButton(
@@ -111,45 +170,28 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                     ],
                   ),
                 ),
-                // ── Body: header + centered verse + note preview ──
+                // ── Body ──
                 body: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // ── Header ──
                     _buildHeader(context),
-
-                    // ── Verse text (centered, scrollable) ──
                     Flexible(
-                      child: Center(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          child: Text(
-                            widget.verse.text,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 22,
-                              height: 2,
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
-                        ),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: _showTafseer
+                            ? _buildTafseerBody(context, colorScheme)
+                            : _buildVerseBody(context, colorScheme),
                       ),
                     ),
-
-                    // ── Note preview (protected space) ──
-                    if (bookmark?.note?.isNotEmpty ?? false)
+                    // ── Note preview (only when showing verse) ──
+                    if (!_showTafseer && (bookmark?.note?.isNotEmpty ?? false))
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: colorScheme.tertiaryContainer.applyOpacity(
-                              0.3,
-                            ),
+                            color: colorScheme.tertiaryContainer.applyOpacity(0.3),
                             borderRadius: BorderRadius.circular(8),
                             border: Border(
                               right: BorderSide(
@@ -172,11 +214,10 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                                   bookmark!.note!,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: colorScheme.onSurfaceVariant,
-                                        height: 1.4,
-                                      ),
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                    height: 1.4,
+                                  ),
                                 ),
                               ),
                             ],
@@ -189,6 +230,107 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  // ── Verse body (default view) ──
+  Widget _buildVerseBody(BuildContext context, ColorScheme colorScheme) {
+    return SizedBox(
+      key: const ValueKey('verse'),
+      width: double.infinity,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Text(
+          widget.verse.text,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 22, height: 2, color: colorScheme.onSurface),
+        ),
+      ),
+    );
+  }
+
+  // ── Tafseer body ──
+  Widget _buildTafseerBody(BuildContext context, ColorScheme colorScheme) {
+    if (_tafseerLoading) {
+      return const SizedBox(
+        key: ValueKey('tafseer-loading'),
+        width: double.infinity,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_tafseerError != null) {
+      return SizedBox(
+        key: const ValueKey('tafseer-error'),
+        width: double.infinity,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.wifi_off_rounded,
+                size: 40,
+                color: colorScheme.onSurfaceVariant.applyOpacity(0.4),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  _tafseerError!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.tonal(
+                onPressed: _retryTafseer,
+                child: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ── Tafseer text ──
+    return SizedBox(
+      key: const ValueKey('tafseer-text'),
+      width: double.infinity,
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Label chip
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'من كتاب التفسير الميسر',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSecondaryContainer,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SelectableText(
+                _tafseerText ?? '',
+                style: TextStyle(fontSize: 14, height: 1.9, color: colorScheme.onSurface),
+                textAlign: TextAlign.justify,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -231,9 +373,7 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                   const Text('الآية '),
                   Text(
                     getArabicNumber(widget.verse.number),
-                    style: TextStyle(
-                      fontFamily: FontFamily.arabicNumbersFontFamily.name,
-                    ),
+                    style: TextStyle(fontFamily: FontFamily.arabicNumbersFontFamily.name),
                   ),
                 ],
               ),
@@ -253,12 +393,8 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
   // Actions
   // ─────────────────────────────────────────────
 
-  Future<void> _onCategorySelected(
-    BuildContext context,
-    BookmarkCategory cat,
-  ) async {
+  Future<void> _onCategorySelected(BuildContext context, BookmarkCategory cat) async {
     if (isBookmarked) {
-      // Change category on existing bookmark
       final updated = bookmark!.copyWith(categoryId: () => cat.id);
       await bookmarkService.updateBookmark(updated);
       setState(() {
@@ -266,22 +402,18 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
         _syncCategory();
       });
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم النقل إلى "${cat.title}" ✓')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('تم النقل إلى "${cat.title}" ✓')));
       }
     } else {
-      // Create new bookmark with selected category
       final newBookmark = VerseBookmark(
         id:
             '${widget.surah}_${widget.verse.number}_'
             '${DateTime.now().millisecondsSinceEpoch}',
         surah: widget.surah,
         verse: widget.verse.number,
-        pageNumber: Quran.instance.getPageNumber(
-          widget.surah,
-          widget.verse.number,
-        ),
+        pageNumber: Quran.instance.getPageNumber(widget.surah, widget.verse.number),
         createdAt: DateTime.now(),
         categoryId: cat.id,
       );
@@ -300,10 +432,7 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
   }
 
   Future<void> _onRemoveBookmark(BuildContext context) async {
-    await bookmarkService.removeBookmarkByVerse(
-      widget.surah,
-      widget.verse.number,
-    );
+    await bookmarkService.removeBookmarkByVerse(widget.surah, widget.verse.number);
     setState(() {
       isBookmarked = false;
       bookmark = null;
@@ -325,32 +454,24 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
         : (result.trim().isEmpty ? null : result.trim());
 
     if (isBookmarked) {
-      // Update existing bookmark's note
       final updated = bookmark!.copyWith(note: () => updatedNote);
       await bookmarkService.updateBookmark(updated);
       setState(() => bookmark = updated);
-
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              updatedNote == null ? 'تم حذف الملاحظة' : 'تم حفظ الملاحظة ✓',
-            ),
+            content: Text(updatedNote == null ? 'تم حذف الملاحظة' : 'تم حفظ الملاحظة ✓'),
           ),
         );
       }
     } else {
-      // Create new bookmark with note
       final newBookmark = VerseBookmark(
         id:
             '${widget.surah}_${widget.verse.number}_'
             '${DateTime.now().millisecondsSinceEpoch}',
         surah: widget.surah,
         verse: widget.verse.number,
-        pageNumber: Quran.instance.getPageNumber(
-          widget.surah,
-          widget.verse.number,
-        ),
+        pageNumber: Quran.instance.getPageNumber(widget.surah, widget.verse.number),
         createdAt: DateTime.now(),
         categoryId: _defaultCategoryId,
         note: updatedNote,
@@ -361,7 +482,6 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
         bookmark = newBookmark;
         _syncCategory();
       });
-
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -380,7 +500,6 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
         'سورة $surahName - الآية {${getArabicNumber(widget.verse.number)}}\n'
         '"$verseInPlainText"\n';
     Clipboard.setData(ClipboardData(text: textToCopy));
-
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('تم النسخ إلى الحافظة')));
@@ -397,35 +516,48 @@ class _ActionButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.iconColor,
+    this.isSelected = false,
   });
 
   final IconData icon;
   final Color? iconColor;
   final String label;
   final VoidCallback onTap;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 22, color: iconColor),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Theme.of(context).colorScheme.onSurface,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2.0),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: Container(
+            decoration: isSelected
+                ? BoxDecoration(
+                    color: colorScheme.primaryContainer.applyOpacity(0.5),
+                    borderRadius: BorderRadius.circular(10),
+                  )
+                : null,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 22, color: isSelected ? colorScheme.primary : iconColor),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.bold : null,
+                    color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -454,8 +586,7 @@ class _BookmarkActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        currentCategory?.color ?? Theme.of(context).colorScheme.onSurface;
+    final color = currentCategory?.color ?? Theme.of(context).colorScheme.onSurface;
 
     return Expanded(
       child: InkWell(
@@ -476,9 +607,7 @@ class _BookmarkActionButton extends StatelessWidget {
                 isBookmarked ? 'تعديل' : 'علامة',
                 style: TextStyle(
                   fontSize: 11,
-                  color: isBookmarked
-                      ? color
-                      : Theme.of(context).colorScheme.onSurface,
+                  color: isBookmarked ? color : Theme.of(context).colorScheme.onSurface,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -497,11 +626,8 @@ class _BookmarkActionButton extends StatelessWidget {
     final size = renderBox.size;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // Calculate menu height
     final itemCount = categories.length + (isBookmarked ? 2 : 0);
     final menuHeight = itemCount * 44.0 + 16.0;
-
-    // Position above the button, but clamp so it doesn't go off-screen
     final topPosition = (offset.dy - menuHeight).clamp(8.0, screenHeight - 48);
 
     showMenu<String>(
@@ -546,29 +672,19 @@ class _BookmarkActionButton extends StatelessWidget {
                       cat.title,
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   ),
                   if (isSelected)
-                    Icon(
-                      Icons.check,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                    Icon(Icons.check, size: 16, color: Theme.of(context).colorScheme.primary),
                 ],
               ),
             ),
           );
         }),
         if (isBookmarked) ...[
-          const PopupMenuItem<String>(
-            enabled: false,
-            height: 8,
-            child: Divider(height: 1),
-          ),
+          const PopupMenuItem<String>(enabled: false, height: 8, child: Divider(height: 1)),
           PopupMenuItem<String>(
             value: '__remove__',
             height: 44,
@@ -584,10 +700,7 @@ class _BookmarkActionButton extends StatelessWidget {
                   const SizedBox(width: 10),
                   Text(
                     'إزالة العلامة',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.error),
                   ),
                 ],
               ),

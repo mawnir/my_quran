@@ -1,3 +1,7 @@
+### v1.6.0
+- FEAT: add Tafseer
+- FEAT: add Audio player to Quran
+
 ### v1.5.0
 
 - FEAT: Add bookmark categories with colors
