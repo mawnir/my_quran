@@ -68,7 +68,7 @@ class AudioService {
         ),
       );
     } catch (e) {
-      debugPrint("Error loading audio for surah $surahNumber: $e");
+      debugPrint('Error loading audio for surah $surahNumber: $e');
       _currentSurahId = null; // Allow retry
     }
   }
@@ -82,7 +82,7 @@ class AudioService {
       await session.configure(const AudioSessionConfiguration.speech());
       _initCompleter!.complete();
     } catch (e) {
-      debugPrint("Error initializing AudioSession: $e");
+      debugPrint('Error initializing AudioSession: $e');
       _initCompleter!.complete(); // Still complete to unblock, or maybe throw?
     }
   }

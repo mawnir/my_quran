@@ -86,7 +86,10 @@ class QuranPageTextCache {
 
       final verses = <Verse>[];
       for (int v = start; v <= end; v++) {
-        verses.add((number: v, text: Quran.instance.getVerse(surahNum, v)));
+        final text = Quran.instance.getVerse(surahNum, v);
+        if (text.isNotEmpty) {
+          verses.add((number: v, text: text));
+        }
       }
       surahs.add(SurahInPage(surahNumber: surahNum, verses: verses));
     }
@@ -96,11 +99,7 @@ class QuranPageTextCache {
       blocks.add(_buildSurahBlockText(surah));
     }
 
-    return QuranPageTextModel(
-      pageNumber: pageNumber,
-      surahs: surahs,
-      blocks: blocks,
-    );
+    return QuranPageTextModel(pageNumber: pageNumber, surahs: surahs, blocks: blocks);
   }
 
   SurahBlockText _buildSurahBlockText(SurahInPage surah) {

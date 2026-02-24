@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:my_quran/app/models.dart';
 
+import 'package:my_quran/quran/data/hizb_data.dart';
 import 'package:my_quran/quran/data/juz_data.dart';
 import 'package:my_quran/quran/data/page_data.dart';
 import 'package:my_quran/quran/data/sajdah_verses.dart';
@@ -62,8 +63,7 @@ class Quran {
     final font = fontFamily ?? FontFamily.defaultFontFamily;
 
     // 1. Load the Visual Data (What the user reads in the main view)
-    if (await _loadJson(_getPathForFont(font))
-        case final Map<String, dynamic> loadedData) {
+    if (await _loadJson(_getPathForFont(font)) case final Map<String, dynamic> loadedData) {
       data.value = loadedData;
 
       // 2. Load the Logic Data (For Search Results & Highlighting)
@@ -95,16 +95,15 @@ class Quran {
     }
   }
 
-  static final List<({String arabic, String english, int number})> surahNames =
-      surah
-          .map(
-            (e) => (
-              number: e['id']! as int,
-              arabic: e['arabic'].toString(),
-              english: e['name'].toString(),
-            ),
-          )
-          .toList(growable: false);
+  static final List<({String arabic, String english, int number})> surahNames = surah
+      .map(
+        (e) => (
+          number: e['id']! as int,
+          arabic: e['arabic'].toString(),
+          english: e['name'].toString(),
+        ),
+      )
+      .toList(growable: false);
 
   ///Takes [pageNumber] and returns a list containing Surahs and the starting
   /// and ending Verse numbers in that page
@@ -149,11 +148,9 @@ class Quran {
   static const int totalVerseCount = 6236;
 
   ///The constant 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ'
-  static const String madinaHafsBasmala =
-      'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+  static const String madinaHafsBasmala = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
 
-  static const String warshBasmala =
-      'بِسْمِ اِ۬للَّهِ اِ۬لرَّحْمَٰنِ اِ۬لرَّحِيمِ';
+  static const String warshBasmala = 'بِسْمِ اِ۬للَّهِ اِ۬لرَّحْمَٰنِ اِ۬لرَّحِيمِ';
 
   static const String uthmanicHafsBasmala = '‏ ‏‏ ‏‏‏‏ ‏‏‏‏‏‏ ‏';
 
@@ -185,8 +182,7 @@ class Quran {
       final verses = juz['verses']! as Map<Object?, Object?>;
       if (verses.keys.contains(surahNumber)) {
         final range = verses[surahNumber]! as List<dynamic>;
-        if (verseNumber >= (range[0] as int) &&
-            verseNumber <= (range[1] as int)) {
+        if (verseNumber >= (range[0] as int) && verseNumber <= (range[1] as int)) {
           return juz['id']! as int;
         }
       }
@@ -194,11 +190,27 @@ class Quran {
     return -1;
   }
 
+  int getHizbNumber(int surahNumber, int verseNumber) {
+    for (final hizb in hizbData) {
+      final verses = hizb['verses']! as Map<int, List<int>>;
+      if (verses.containsKey(surahNumber)) {
+        final range = verses[surahNumber]!;
+        if (verseNumber >= range[0] && verseNumber <= range[1]) {
+          return hizb['id']! as int;
+        }
+      }
+    }
+    return -1;
+  }
+
   Map<int, List<int>> getSurahAndVersesFromJuz(int juzNumber) {
-    return (juzData[juzNumber - 1]['verses']! as Map<Object?, Object?>).map((
-      key,
-      value,
-    ) {
+    return (juzData[juzNumber - 1]['verses']! as Map<Object?, Object?>).map((key, value) {
+      return MapEntry(key! as int, (value! as List<dynamic>).cast<int>());
+    });
+  }
+
+  Map<int, List<int>> getSurahAndVersesFromHizb(int hizbNumber) {
+    return (hizbData[hizbNumber - 1]['verses']! as Map<Object?, Object?>).map((key, value) {
       return MapEntry(key! as int, (value! as List<dynamic>).cast<int>());
     });
   }
@@ -261,26 +273,22 @@ class Quran {
 
   ///Takes [surahNumber], [verseNumber] & [verseEndSymbol] (optional) and
   /// returns the Verse in Arabic
-  String getVerse(
-    int surahNumber,
-    int verseNumber, {
-    bool verseEndSymbol = false,
-  }) {
+  String getVerse(int surahNumber, int verseNumber, {bool verseEndSymbol = false}) {
     final verse =
-        (data.value[surahNumber.toString()]
-                as Map<String, dynamic>?)?[verseNumber.toString()]
+        (data.value[surahNumber.toString()] as Map<String, dynamic>?)?[verseNumber.toString()]
             as String?;
 
     if (verse == null) {
-      throw 'No verse found with given surahNumber and verseNumber.\n\n';
+      debugPrint('Verse not found: $surahNumber:$verseNumber');
+      return '';
     }
 
     return verse + (verseEndSymbol ? getVerseEndSymbol(verseNumber) : '');
   }
 
   String getVerseInPlainText(int surahNumber, int verseNumber) {
-    return (_plainTextData[surahNumber.toString()]
-                as Map<String, dynamic>?)?[verseNumber.toString()]
+    return (_plainTextData[surahNumber.toString()] as Map<String, dynamic>?)?[verseNumber
+                .toString()]
             as String? ??
         '';
   }

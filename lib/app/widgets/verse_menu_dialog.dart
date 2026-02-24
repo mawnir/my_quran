@@ -531,7 +531,7 @@ class _ActionButton extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2.0),
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
           onTap: onTap,

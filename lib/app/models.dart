@@ -40,11 +40,7 @@ class QuranPage {
 }
 
 class PageLocation {
-  PageLocation({
-    required this.pageNumber,
-    required this.surahNumber,
-    required this.surahName,
-  });
+  PageLocation({required this.pageNumber, required this.surahNumber, required this.surahName});
   final int pageNumber;
   final int surahNumber;
   final String surahName;
@@ -56,39 +52,38 @@ class ReadingPosition {
     required this.surahNumber,
     required this.verseNumber,
     required this.juzNumber,
+    required this.hizbNumber,
   });
-  factory ReadingPosition.fromJson(Map<String, dynamic> json) =>
-      ReadingPosition(
-        pageNumber: json['pageNumber'] as int,
-        surahNumber: json['surahNumber'] as int,
-        verseNumber: json['verseNumber'] as int,
-        juzNumber: json['juzNumber'] as int,
-      );
+  factory ReadingPosition.fromJson(Map<String, dynamic> json) => ReadingPosition(
+    pageNumber: json['pageNumber'] as int,
+    surahNumber: json['surahNumber'] as int,
+    verseNumber: json['verseNumber'] as int,
+    juzNumber: json['juzNumber'] as int,
+    hizbNumber: json['hizbNumber'] as int? ?? 1,
+  );
   final int pageNumber;
   final int surahNumber;
   final int verseNumber;
   final int juzNumber;
+  final int hizbNumber;
 
   @override
   String toString() =>
       'Page: $pageNumber, Surah: $surahNumber, Verse: $verseNumber, '
-      'Juz: $juzNumber';
+      'Juz: $juzNumber, Hizb: $hizbNumber';
 
   Map<String, dynamic> toJson() => {
     'pageNumber': pageNumber,
     'surahNumber': surahNumber,
     'verseNumber': verseNumber,
     'juzNumber': juzNumber,
+    'hizbNumber': hizbNumber,
   };
 }
 
 @immutable
 class BookmarkCategory {
-  const BookmarkCategory({
-    required this.id,
-    required this.title,
-    required this.color,
-  });
+  const BookmarkCategory({required this.id, required this.title, required this.color});
 
   factory BookmarkCategory.fromJson(Map<String, dynamic> json) {
     return BookmarkCategory(
@@ -102,11 +97,7 @@ class BookmarkCategory {
   final String title;
   final Color color;
 
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'color': color.toARGB32(),
-  };
+  Map<String, dynamic> toJson() => {'id': id, 'title': title, 'color': color.toARGB32()};
 
   BookmarkCategory copyWith({String? id, String? title, Color? color}) {
     return BookmarkCategory(
@@ -119,9 +110,7 @@ class BookmarkCategory {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is BookmarkCategory &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
+      other is BookmarkCategory && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;

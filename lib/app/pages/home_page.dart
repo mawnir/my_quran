@@ -60,7 +60,13 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
     Quran.data.addListener(_onQuranDataChanged);
     _currentPositionNotifier = ValueNotifier(
       widget.initialPosition ??
-          const ReadingPosition(pageNumber: 1, surahNumber: 1, verseNumber: 1, juzNumber: 1),
+          const ReadingPosition(
+            pageNumber: 1,
+            surahNumber: 1,
+            verseNumber: 1,
+            juzNumber: 1,
+            hizbNumber: 1,
+          ),
     );
 
     _itemPositionsListener.itemPositions.addListener(_onScrollUpdate);
@@ -179,11 +185,13 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
       final surahNum = firstSurah['surah']!;
       final verseNum = firstSurah['start']!;
       final juz = Quran.instance.getJuzNumber(surahNum, verseNum);
+      final hizb = Quran.instance.getHizbNumber(surahNum, verseNum);
       _currentPositionNotifier.value = ReadingPosition(
         pageNumber: pageNumber,
         surahNumber: surahNum,
         verseNumber: verseNum,
         juzNumber: juz,
+        hizbNumber: hizb,
       );
     }
   }

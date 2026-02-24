@@ -16,8 +16,7 @@ class PinnedHeader extends StatelessWidget {
   });
 
   final ValueNotifier<ReadingPosition> currentPositionNotifier;
-  final void Function(int page, {int? highlightSurah, int? highlightVerse})
-  goToPage;
+  final void Function(int page, {int? highlightSurah, int? highlightVerse}) goToPage;
   final BoxDecoration decoration;
   final double infoHeight;
   final double statusBarHeight;
@@ -43,9 +42,7 @@ class PinnedHeader extends StatelessWidget {
           child: ValueListenableBuilder<ReadingPosition>(
             valueListenable: currentPositionNotifier,
             builder: (context, position, _) {
-              final surahName = Quran.instance.getSurahNameArabic(
-                position.surahNumber,
-              );
+              final surahName = Quran.instance.getSurahNameArabic(position.surahNumber);
               return Stack(
                 alignment: Alignment.center,
                 children: [
@@ -60,9 +57,10 @@ class PinnedHeader extends StatelessWidget {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () => onJuzTapped(context),
+                        onTap: () => onHizbTapped(context),
                         child: Text(
-                          'جزء ${getArabicNumber(position.juzNumber)}',
+                          'حزب ${getArabicNumber(position.hizbNumber)}',
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ),
                     ],
@@ -101,10 +99,7 @@ class PinnedHeader extends StatelessWidget {
       if (juz is! int || juz < 1 || juz > 30) {
         return;
       }
-      final firstSurahOfJuz = Quran.instance
-          .getSurahAndVersesFromJuz(juz)
-          .entries
-          .first;
+      final firstSurahOfJuz = Quran.instance.getSurahAndVersesFromJuz(juz).entries.first;
       final surahNumber = firstSurahOfJuz.key;
       final verseNumber = firstSurahOfJuz.value.first;
       Navigator.pop(context);
@@ -124,12 +119,8 @@ class PinnedHeader extends StatelessWidget {
           TextField(
             maxLength: 2,
             buildCounter:
-                (
-                  context, {
-                  required currentLength,
-                  required isFocused,
-                  required maxLength,
-                }) => const SizedBox.shrink(),
+                (context, {required currentLength, required isFocused, required maxLength}) =>
+                    const SizedBox.shrink(),
             autofocus: true,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             keyboardType: TextInputType.number,
@@ -140,10 +131,54 @@ class PinnedHeader extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
-          FilledButton(
-            onPressed: () => validateAndGo(juz),
-            child: const Text('انتقال'),
+          FilledButton(onPressed: () => validateAndGo(juz), child: const Text('انتقال')),
+        ],
+      ),
+    );
+  }
+
+  void onHizbTapped(BuildContext context) {
+    int? hizb;
+    void validateAndGo(int? hizbValue) {
+      if (hizbValue is! int || hizbValue < 1 || hizbValue > 60) {
+        return;
+      }
+      final firstSurahOfHizb = Quran.instance
+          .getSurahAndVersesFromHizb(hizbValue)
+          .entries
+          .first;
+      final surahNumber = firstSurahOfHizb.key;
+      final verseNumber = firstSurahOfHizb.value.first;
+      Navigator.pop(context);
+      goToPage(
+        Quran.instance.getPageNumber(surahNumber, verseNumber),
+        highlightSurah: surahNumber,
+        highlightVerse: verseNumber,
+      );
+    }
+
+    showAdaptiveDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('أدخل رقم الحزب'),
+        contentPadding: const EdgeInsets.all(24),
+        children: [
+          TextField(
+            maxLength: 2,
+            buildCounter:
+                (context, {required currentLength, required isFocused, required maxLength}) =>
+                    const SizedBox.shrink(),
+            autofocus: true,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            keyboardType: TextInputType.number,
+            style: const TextStyle(fontSize: 18),
+            onChanged: (value) => hizb = int.tryParse(value),
+            onSubmitted: (value) {
+              validateAndGo(int.tryParse(value));
+            },
           ),
+          const SizedBox(height: 16),
+          FilledButton(onPressed: () => validateAndGo(hizb), child: const Text('انتقال')),
         ],
       ),
     );
@@ -243,9 +278,7 @@ class _SearchSurahDialogState extends State<_SearchSurahDialog> {
                         .where(
                           (e) =>
                               e.arabic.contains(value.text) ||
-                              e.english.toLowerCase().contains(
-                                value.text.toLowerCase(),
-                              ),
+                              e.english.toLowerCase().contains(value.text.toLowerCase()),
                         )
                         .toList();
               if (items.isEmpty) {
@@ -265,10 +298,7 @@ class _SearchSurahDialogState extends State<_SearchSurahDialog> {
                   ),
                   title: Text(
                     '${items[index].arabic} - ${items[index].english}',
-                    style: TextStyle(
-                      fontFamily: FontFamily.rustam.name,
-                      letterSpacing: 0,
-                    ),
+                    style: TextStyle(fontFamily: FontFamily.rustam.name, letterSpacing: 0),
                   ),
                 ),
               );
