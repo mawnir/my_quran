@@ -184,12 +184,13 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
       final firstSurah = pageData.first;
       final surahNum = firstSurah['surah']!;
       final verseNum = firstSurah['start']!;
+      final lastVerse = firstSurah['end']!;
       final juz = Quran.instance.getJuzNumber(surahNum, verseNum);
-      final hizb = Quran.instance.getHizbNumber(surahNum, verseNum);
+      final hizb = Quran.instance.getHizbNumber(surahNum, lastVerse);
       _currentPositionNotifier.value = ReadingPosition(
         pageNumber: pageNumber,
         surahNumber: surahNum,
-        verseNumber: verseNum,
+        verseNumber: lastVerse,
         juzNumber: juz,
         hizbNumber: hizb,
       );
