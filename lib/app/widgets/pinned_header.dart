@@ -58,9 +58,20 @@ class PinnedHeader extends StatelessWidget {
                       ),
                       GestureDetector(
                         onTap: () => onHizbTapped(context),
-                        child: Text(
-                          'حزب ${getArabicNumber(position.hizbNumber)}',
-                          style: const TextStyle(fontSize: 14),
+                        child: Builder(
+                          builder: (context) {
+                            final quarter = Quran.instance.getHizbQuarter(
+                              position.surahNumber,
+                              position.verseNumber,
+                            );
+                            final hizbText = 'حزب ${getArabicNumber(position.hizbNumber)}';
+                            return Text(
+                              quarter == 1
+                                  ? hizbText
+                                  : '$hizbText - ربع ${getArabicNumber(quarter)}',
+                              style: const TextStyle(fontSize: 14),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -143,12 +154,7 @@ class PinnedHeader extends StatelessWidget {
       if (hizbValue is! int || hizbValue < 1 || hizbValue > 60) {
         return;
       }
-      final firstSurahOfHizb = Quran.instance
-          .getSurahAndVersesFromHizb(hizbValue)
-          .entries
-          .first;
-      final surahNumber = firstSurahOfHizb.key;
-      final verseNumber = firstSurahOfHizb.value.first;
+      final (surahNumber, verseNumber) = Quran.instance.getHizbQuarterStart(hizbValue);
       Navigator.pop(context);
       goToPage(
         Quran.instance.getPageNumber(surahNumber, verseNumber),

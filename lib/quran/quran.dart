@@ -190,27 +190,42 @@ class Quran {
     return -1;
   }
 
-  int getHizbNumber(int surahNumber, int verseNumber) {
-    for (final hizb in hizbData) {
-      final verses = hizb['verses']! as Map<int, List<int>>;
-      if (verses.containsKey(surahNumber)) {
-        final range = verses[surahNumber]!;
-        if (verseNumber >= range[0] && verseNumber <= range[1]) {
-          return hizb['id']! as int;
-        }
+  int getHizbNumber(int surah, int verse) {
+    final quarterIndex = _getQuarterIndex(surah, verse);
+    return (quarterIndex ~/ 4) + 1;
+  }
+
+  /// Returns quarter within the hizb (1-4).
+  int getHizbQuarter(int surah, int verse) {
+    final quarterIndex = _getQuarterIndex(surah, verse);
+    return (quarterIndex % 4) + 1;
+  }
+
+  /// Returns true if this verse starts a hizb quarter.
+  bool isHizbQuarterStart(int surah, int verse) {
+    return hizbQuarterStarts.any((e) => e.$1 == surah && e.$2 == verse);
+  }
+
+  /// Hizb quarter index (0-239) for binary search.
+  int _getQuarterIndex(int surah, int verse) {
+    int result = 0;
+    for (int i = hizbQuarterStarts.length - 1; i >= 0; i--) {
+      final (s, v) = hizbQuarterStarts[i];
+      if (surah > s || (surah == s && verse >= v)) {
+        result = i;
+        break;
       }
     }
-    return -1;
+    return result;
+  }
+
+  (int surah, int verse) getHizbQuarterStart(int hizb, {int quarter = 1}) {
+    final index = ((hizb - 1) * 4) + (quarter - 1);
+    return hizbQuarterStarts[index.clamp(0, hizbQuarterStarts.length - 1)];
   }
 
   Map<int, List<int>> getSurahAndVersesFromJuz(int juzNumber) {
     return (juzData[juzNumber - 1]['verses']! as Map<Object?, Object?>).map((key, value) {
-      return MapEntry(key! as int, (value! as List<dynamic>).cast<int>());
-    });
-  }
-
-  Map<int, List<int>> getSurahAndVersesFromHizb(int hizbNumber) {
-    return (hizbData[hizbNumber - 1]['verses']! as Map<Object?, Object?>).map((key, value) {
       return MapEntry(key! as int, (value! as List<dynamic>).cast<int>());
     });
   }

@@ -73,7 +73,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
     widget.settingsController.addListener(_onScrollingModeChanged);
     _currentPositionNotifier.addListener(_syncAudioMetadata);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      WhatsNewDialog.showIfNeeded(context);
+      //WhatsNewDialog.showIfNeeded(context);
     });
   }
 
