@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:my_quran/app/widgets/edit_note_dialog.dart';
-
 import 'package:my_quran/quran/quran.dart';
-
 import 'package:my_quran/app/models.dart';
 import 'package:my_quran/app/services/bookmark_service.dart';
 import 'package:my_quran/app/utils.dart';
@@ -20,6 +18,8 @@ class VerseMenuDialog extends StatefulWidget {
   State<VerseMenuDialog> createState() => _VerseMenuDialogState();
 }
 
+enum _ActiveView { verse, tafseer, words, meaning }
+
 class _VerseMenuDialogState extends State<VerseMenuDialog> {
   late final bookmarkService = BookmarkService();
   late bool isBookmarked = bookmarkService.isBookmarked(widget.surah, widget.verse.number);
@@ -31,11 +31,23 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
 
   BookmarkCategory? currentCategory;
 
+  // ── Active View state ──
+  _ActiveView _activeView = _ActiveView.verse;
+
   // ── Tafseer state ──
-  bool _showTafseer = false;
   bool _tafseerLoading = false;
   String? _tafseerText;
   String? _tafseerError;
+
+  // ── Words state ──
+  bool _wordsLoading = false;
+  List<dynamic>? _words;
+  String? _wordsError;
+
+  // ── Meaning state ──
+  bool _meaningLoading = false;
+  String? _meaningText;
+  String? _meaningError;
 
   @override
   void initState() {
@@ -59,20 +71,20 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
 
   // ── Toggle tafseer / verse ──
   Future<void> _toggleTafseer() async {
-    if (_showTafseer) {
-      setState(() => _showTafseer = false);
+    if (_activeView == _ActiveView.tafseer) {
+      setState(() => _activeView = _ActiveView.verse);
       return;
     }
 
     // Already fetched — just show it.
     if (_tafseerText != null) {
-      setState(() => _showTafseer = true);
+      setState(() => _activeView = _ActiveView.tafseer);
       return;
     }
 
     // Fetch for the first time.
     setState(() {
-      _showTafseer = true;
+      _activeView = _ActiveView.tafseer;
       _tafseerLoading = true;
       _tafseerError = null;
     });
@@ -112,6 +124,114 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
     await _toggleTafseer();
   }
 
+  // ── Toggle words / verse ──
+  Future<void> _toggleWords() async {
+    if (_activeView == _ActiveView.words) {
+      setState(() => _activeView = _ActiveView.verse);
+      return;
+    }
+
+    if (_words != null) {
+      setState(() => _activeView = _ActiveView.words);
+      return;
+    }
+
+    setState(() {
+      _activeView = _ActiveView.words;
+      _wordsLoading = true;
+      _wordsError = null;
+    });
+
+    try {
+      final url = Uri.parse(
+        'https://api.quran.com/api/v4/verses/by_key/'
+        '${widget.surah}:${widget.verse.number}?words=true&word_fields=text_uthmani,transliteration&word_translation_language=en',
+      );
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final wordsList =
+            (data['verse'] as Map<String, dynamic>?)?['words'] as List<dynamic>? ?? [];
+        setState(() {
+          _words = wordsList;
+          _wordsLoading = false;
+        });
+      } else {
+        setState(() {
+          _wordsError = 'خطأ في الاتصال (${response.statusCode})';
+          _wordsLoading = false;
+        });
+      }
+    } catch (_) {
+      setState(() {
+        _wordsError = 'تعذّر تحميل ترجمة الكلمات.';
+        _wordsLoading = false;
+      });
+    }
+  }
+
+  Future<void> _retryWords() async {
+    setState(() {
+      _words = null;
+      _wordsError = null;
+    });
+    await _toggleWords();
+  }
+
+  // ── Toggle meaning / verse ──
+  Future<void> _toggleMeaning() async {
+    if (_activeView == _ActiveView.meaning) {
+      setState(() => _activeView = _ActiveView.verse);
+      return;
+    }
+
+    if (_meaningText != null) {
+      setState(() => _activeView = _ActiveView.meaning);
+      return;
+    }
+
+    setState(() {
+      _activeView = _ActiveView.meaning;
+      _meaningLoading = true;
+      _meaningError = null;
+    });
+
+    try {
+      final url = Uri.parse(
+        'https://quranenc.com/api/v1/translation/aya/arabic_seraj/'
+        '${widget.surah}/${widget.verse.number}',
+      );
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final text =
+            (data['result'] as Map<String, dynamic>?)?['translation'] as String? ?? '';
+        setState(() {
+          _meaningText = text;
+          _meaningLoading = false;
+        });
+      } else {
+        setState(() {
+          _meaningError = 'خطأ في الاتصال (${response.statusCode})';
+          _meaningLoading = false;
+        });
+      }
+    } catch (_) {
+      setState(() {
+        _meaningError = 'تعذّر تحميل معاني الكلمات.';
+        _meaningLoading = false;
+      });
+    }
+  }
+
+  Future<void> _retryMeaning() async {
+    setState(() {
+      _meaningText = null;
+      _meaningError = null;
+    });
+    await _toggleMeaning();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -137,19 +257,26 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                   child: Row(
                     children: [
-                      _ActionButton(
-                        icon: Icons.copy,
-                        label: 'نسخ',
-                        onTap: () => _copyVerse(context),
-                      ),
                       // ── Tafseer toggle button ──
                       _ActionButton(
-                        icon: _showTafseer
+                        icon: _activeView == _ActiveView.tafseer
                             ? Icons.menu_book_outlined
                             : Icons.auto_stories_outlined,
-                        label: _showTafseer ? 'الآية' : 'تفسير',
-                        isSelected: _showTafseer,
+                        label: _activeView == _ActiveView.tafseer ? 'الآية' : 'تفسير',
+                        isSelected: _activeView == _ActiveView.tafseer,
                         onTap: _toggleTafseer,
+                      ),
+                      _ActionButton(
+                        icon: Icons.library_books_outlined,
+                        label: _activeView == _ActiveView.meaning ? 'الآية' : 'معاني ك',
+                        isSelected: _activeView == _ActiveView.meaning,
+                        onTap: _toggleMeaning,
+                      ),
+                      _ActionButton(
+                        icon: Icons.translate_outlined,
+                        label: _activeView == _ActiveView.words ? 'الآية' : 'ترجمة',
+                        isSelected: _activeView == _ActiveView.words,
+                        onTap: _toggleWords,
                       ),
                       _BookmarkActionButton(
                         isBookmarked: isBookmarked,
@@ -157,16 +284,6 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                         categories: categories,
                         onCategorySelected: (cat) => _onCategorySelected(context, cat),
                         onRemove: () => _onRemoveBookmark(context),
-                      ),
-                      _ActionButton(
-                        iconColor: (bookmark?.note?.isNotEmpty ?? false)
-                            ? colorScheme.primary
-                            : colorScheme.onSurfaceVariant,
-                        icon: (bookmark?.note?.isNotEmpty ?? false)
-                            ? Icons.edit_note
-                            : Icons.note_add_outlined,
-                        label: 'ملاحظة',
-                        onTap: () => _onNoteTap(context),
                       ),
                     ],
                   ),
@@ -179,13 +296,17 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                     Flexible(
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 250),
-                        child: _showTafseer
-                            ? _buildTafseerBody(context, colorScheme)
-                            : _buildVerseBody(context, colorScheme),
+                        child: switch (_activeView) {
+                          _ActiveView.verse => _buildVerseBody(context, colorScheme),
+                          _ActiveView.tafseer => _buildTafseerBody(context, colorScheme),
+                          _ActiveView.words => _buildWordsBody(context, colorScheme),
+                          _ActiveView.meaning => _buildMeaningBody(context, colorScheme),
+                        },
                       ),
                     ),
                     // ── Note preview (only when showing verse) ──
-                    if (!_showTafseer && (bookmark?.note?.isNotEmpty ?? false))
+                    if (_activeView == _ActiveView.verse &&
+                        (bookmark?.note?.isNotEmpty ?? false))
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                         child: Container(
@@ -336,6 +457,185 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
     );
   }
 
+  // ── Words body ──
+  Widget _buildWordsBody(BuildContext context, ColorScheme colorScheme) {
+    if (_wordsLoading) {
+      return const SizedBox(
+        key: ValueKey('words-loading'),
+        width: double.infinity,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_wordsError != null) {
+      return SizedBox(
+        key: const ValueKey('words-error'),
+        width: double.infinity,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.wifi_off_rounded,
+                size: 40,
+                color: colorScheme.onSurfaceVariant.applyOpacity(0.4),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  _wordsError!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.tonal(onPressed: _retryWords, child: const Text('إعادة المحاولة')),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final words = _words?.where((w) => w['char_type_name'] != 'end').toList() ?? [];
+
+    return SizedBox(
+      key: const ValueKey('words-text'),
+      width: double.infinity,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: words.length,
+        separatorBuilder: (context, index) =>
+            Divider(height: 1, color: colorScheme.outlineVariant.applyOpacity(0.5)),
+        itemBuilder: (context, index) {
+          final word = words[index];
+          final arabic = word['text_uthmani'] as String? ?? '';
+          final translation = word['translation']?['text'] as String? ?? '';
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    arabic,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      height: 1.4,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 4,
+                  child: Text(
+                    translation,
+                    textAlign: TextAlign.left,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colorScheme.onSurfaceVariant,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ── Meaning body ──
+  Widget _buildMeaningBody(BuildContext context, ColorScheme colorScheme) {
+    if (_meaningLoading) {
+      return const SizedBox(
+        key: ValueKey('meaning-loading'),
+        width: double.infinity,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_meaningError != null) {
+      return SizedBox(
+        key: const ValueKey('meaning-error'),
+        width: double.infinity,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.wifi_off_rounded,
+                size: 40,
+                color: colorScheme.onSurfaceVariant.applyOpacity(0.4),
+              ),
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  _meaningError!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.tonal(
+                onPressed: _retryMeaning,
+                child: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      key: const ValueKey('meaning-text'),
+      width: double.infinity,
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: colorScheme.tertiaryContainer,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'من "موسوعة القرآن الكريم"',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onTertiaryContainer,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SelectableText(
+                (_meaningText != null && _meaningText!.trim().isNotEmpty)
+                    ? _meaningText!
+                    : 'لايوجد أي تفسير للكلمات',
+                style: TextStyle(fontSize: 16, height: 1.8, color: colorScheme.onSurface),
+                textAlign: TextAlign.justify,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ─────────────────────────────────────────────
   // Header
   // ─────────────────────────────────────────────
@@ -379,6 +679,24 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                 ],
               ),
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.copy, size: 20),
+            onPressed: () => _copyVerse(context),
+            tooltip: 'نسخ',
+          ),
+          IconButton(
+            icon: Icon(
+              (bookmark?.note?.isNotEmpty ?? false)
+                  ? Icons.edit_note
+                  : Icons.note_add_outlined,
+              size: 22,
+              color: (bookmark?.note?.isNotEmpty ?? false)
+                  ? Theme.of(context).colorScheme.primary
+                  : null,
+            ),
+            onPressed: () => _onNoteTap(context),
+            tooltip: 'ملاحظة',
           ),
           IconButton(
             icon: const Icon(Icons.close, size: 20),
@@ -516,12 +834,10 @@ class _ActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    this.iconColor,
     this.isSelected = false,
   });
 
   final IconData icon;
-  final Color? iconColor;
   final String label;
   final VoidCallback onTap;
   final bool isSelected;
@@ -546,7 +862,7 @@ class _ActionButton extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 22, color: isSelected ? colorScheme.primary : iconColor),
+                Icon(icon, size: 22, color: isSelected ? colorScheme.primary : null),
                 const SizedBox(height: 4),
                 Text(
                   label,

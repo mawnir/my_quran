@@ -334,17 +334,18 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
         elevation: 0,
         flexibleSpace: Container(decoration: appBarDecoration),
         actions: [
-          ValueListenableBuilder(
-            valueListenable: _highlightedVerseNotifier,
-            builder: (context, highlight, _) {
-              if (highlight == null) return const SizedBox.shrink();
-              return IconButton(
-                icon: const Icon(Icons.info_outline),
-                tooltip: 'خيارات الآية',
-                onPressed: () => _showVerseMenu(highlight.surah, highlight.verse),
-              );
-            },
-          ),
+          if (kIsWeb)
+            ValueListenableBuilder(
+              valueListenable: _highlightedVerseNotifier,
+              builder: (context, highlight, _) {
+                if (highlight == null) return const SizedBox.shrink();
+                return IconButton(
+                  icon: const Icon(Icons.info_outline),
+                  tooltip: 'خيارات الآية',
+                  onPressed: () => _showVerseMenu(highlight.surah, highlight.verse),
+                );
+              },
+            ),
           IconButton(
             onPressed: widget.settingsController.toggleTheme,
             icon: Icon(switch (widget.settingsController.themeMode) {
