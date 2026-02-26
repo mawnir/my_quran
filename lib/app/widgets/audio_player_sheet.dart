@@ -78,7 +78,6 @@ class _AudioPlayerSheetState extends State<AudioPlayerSheet> {
                       inactiveTrackColor: colorScheme.primary.withOpacity(0.1),
                     ),
                     child: Slider(
-                      min: 0.0,
                       max: positionData?.duration.inMilliseconds.toDouble() ?? 0.0,
                       value:
                           positionData?.position.inMilliseconds.toDouble().clamp(
@@ -240,7 +239,7 @@ class _AudioPlayerSheetState extends State<AudioPlayerSheet> {
   }
 
   String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
     final String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
     final String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
     if (duration.inHours > 0) {

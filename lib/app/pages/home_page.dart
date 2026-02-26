@@ -10,7 +10,6 @@ import 'package:my_quran/app/services/audio_service.dart';
 import 'package:my_quran/app/widgets/audio_player_sheet.dart';
 import 'package:my_quran/app/services/bookmark_service.dart';
 import 'package:my_quran/app/widgets/settings_sheet.dart';
-import 'package:my_quran/app/widgets/whats_new_dialog.dart';
 
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 

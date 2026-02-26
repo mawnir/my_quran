@@ -51,7 +51,7 @@ class AudioService {
       orElse: () => surahAudio.first,
     );
 
-    final url = audioData['audio'] as String;
+    final url = audioData['audio']! as String;
 
     try {
       debugPrint('AudioService: Loading Surah $surahNumber ($url)');
@@ -102,23 +102,21 @@ class AudioService {
 }
 
 class AudioMetadata {
-  final int surahNumber;
-  final int verseNumber;
-  final String surahName;
-  final String arabicName;
-
   AudioMetadata({
     required this.surahNumber,
     required this.verseNumber,
     required this.surahName,
     required this.arabicName,
   });
+  final int surahNumber;
+  final int verseNumber;
+  final String surahName;
+  final String arabicName;
 }
 
 class PositionData {
+  PositionData(this.position, this.bufferedPosition, this.duration);
   final Duration position;
   final Duration bufferedPosition;
   final Duration duration;
-
-  PositionData(this.position, this.bufferedPosition, this.duration);
 }
