@@ -285,6 +285,14 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                         onCategorySelected: (cat) => _onCategorySelected(context, cat),
                         onRemove: () => _onRemoveBookmark(context),
                       ),
+                      _ActionButton(
+                        icon: (bookmark?.note?.isNotEmpty ?? false)
+                            ? Icons.edit_note
+                            : Icons.note_add_outlined,
+                        label: 'ملاحظة',
+                        isSelected: bookmark?.note?.isNotEmpty ?? false,
+                        onTap: () => _onNoteTap(context),
+                      ),
                     ],
                   ),
                 ),
@@ -613,7 +621,7 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  'من "موسوعة القرآن الكريم"',
+                  ' من كتاب "السراج في بيان غريب القرآن" ',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -667,16 +675,21 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
                 fontSize: 16,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
-              child: Row(
-                children: [
-                  Text(Quran.instance.getSurahNameArabic(widget.surah)),
-                  const Text(' - '),
-                  const Text('الآية '),
-                  Text(
-                    getArabicNumber(widget.verse.number),
-                    style: TextStyle(fontFamily: FontFamily.arabicNumbersFontFamily.name),
-                  ),
-                ],
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(Quran.instance.getSurahNameArabic(widget.surah)),
+                    const Text(' - '),
+                    const Text('الآية '),
+                    Text(
+                      getArabicNumber(widget.verse.number),
+                      style: TextStyle(fontFamily: FontFamily.arabicNumbersFontFamily.name),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -684,19 +697,6 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
             icon: const Icon(Icons.copy, size: 20),
             onPressed: () => _copyVerse(context),
             tooltip: 'نسخ',
-          ),
-          IconButton(
-            icon: Icon(
-              (bookmark?.note?.isNotEmpty ?? false)
-                  ? Icons.edit_note
-                  : Icons.note_add_outlined,
-              size: 22,
-              color: (bookmark?.note?.isNotEmpty ?? false)
-                  ? Theme.of(context).colorScheme.primary
-                  : null,
-            ),
-            onPressed: () => _onNoteTap(context),
-            tooltip: 'ملاحظة',
           ),
           IconButton(
             icon: const Icon(Icons.close, size: 20),
