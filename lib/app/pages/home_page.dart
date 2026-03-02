@@ -20,7 +20,6 @@ import 'package:my_quran/app/services/reading_position_service.dart';
 import 'package:my_quran/app/utils.dart';
 import 'package:my_quran/app/quran_helpers.dart';
 import 'package:my_quran/app/models.dart';
-import 'package:my_quran/app/widgets/navigation_sheet.dart';
 import 'package:my_quran/app/widgets/verse_menu_dialog.dart';
 import 'package:my_quran/app/widgets/search_sheet.dart';
 import 'package:my_quran/app/widgets/pinned_header.dart';
