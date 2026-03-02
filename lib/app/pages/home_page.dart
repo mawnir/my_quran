@@ -260,23 +260,23 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       extendBodyBehindAppBar: true,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: colorScheme.surfaceContainerLow,
-        foregroundColor: colorScheme.primary,
-        elevation: 4,
-        onPressed: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          useSafeArea: true,
-          constraints: const BoxConstraints(maxHeight: 600),
-          builder: (_) => QuranNavigationBottomSheet(
-            initialPage: _currentPositionNotifier.value.pageNumber,
-            onNavigate: ({required int page, required int surah, required int verse}) =>
-                _jumpToPage(page, highlightSurah: surah, highlightVerse: verse),
-          ),
-        ),
-        child: Icon(Icons.menu_book_outlined, color: colorScheme.primary),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   backgroundColor: colorScheme.surfaceContainerLow,
+      //   foregroundColor: colorScheme.primary,
+      //   elevation: 4,
+      //   onPressed: () => showModalBottomSheet(
+      //     context: context,
+      //     isScrollControlled: true,
+      //     useSafeArea: true,
+      //     constraints: const BoxConstraints(maxHeight: 600),
+      //     builder: (_) => QuranNavigationBottomSheet(
+      //       initialPage: _currentPositionNotifier.value.pageNumber,
+      //       onNavigate: ({required int page, required int surah, required int verse}) =>
+      //           _jumpToPage(page, highlightSurah: surah, highlightVerse: verse),
+      //     ),
+      //   ),
+      //   child: Icon(Icons.menu_book_outlined, color: colorScheme.primary),
+      // ),
       // --- 1. The Glass App Bar ---
       appBar: AppBar(
         systemOverlayStyle: isDarkMode

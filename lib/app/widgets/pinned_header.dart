@@ -43,6 +43,12 @@ class PinnedHeader extends StatelessWidget {
             valueListenable: currentPositionNotifier,
             builder: (context, position, _) {
               final surahName = Quran.instance.getSurahNameArabic(position.surahNumber);
+              final surahPages = Quran.instance.getSurahPages(position.surahNumber);
+              final pageIndex = surahPages.indexOf(position.pageNumber);
+              final progress = (pageIndex == -1)
+                  ? 0
+                  : ((pageIndex + 1) / surahPages.length * 100).toInt();
+
               return Stack(
                 alignment: Alignment.center,
                 children: [
@@ -53,7 +59,7 @@ class PinnedHeader extends StatelessWidget {
                         onTap: () => onSurahTapped(context),
                         child: Text(
                           '${getArabicNumber(position.surahNumber)} - '
-                          '$surahName',
+                          '$surahName${pageIndex > 0 ? " (${getArabicNumber(progress)}٪)" : ""}',
                         ),
                       ),
                       GestureDetector(
@@ -68,7 +74,7 @@ class PinnedHeader extends StatelessWidget {
                             return Text(
                               quarter == 1
                                   ? hizbText
-                                  : '$hizbText - ربع ${getArabicNumber(quarter)}',
+                                  : '$hizbText - ${getArabicNumber(quarter)}/٤',
                               style: const TextStyle(fontSize: 14),
                             );
                           },
