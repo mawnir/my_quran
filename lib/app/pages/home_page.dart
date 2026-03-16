@@ -285,20 +285,21 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
         title: Row(
           spacing: 5,
           children: [
-            IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () => showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                useSafeArea: true,
-                showDragHandle: true,
-                builder: (_) => QuranSearchBottomSheet(
-                  verseFontFamily: widget.settingsController.fontFamily,
-                  onNavigateToPage: (int page, {int? surah, int? verse}) =>
-                      _jumpToPage(page, highlightSurah: surah, highlightVerse: verse),
+            if (kIsWeb)
+              IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: () => showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  showDragHandle: true,
+                  builder: (_) => QuranSearchBottomSheet(
+                    verseFontFamily: widget.settingsController.fontFamily,
+                    onNavigateToPage: (int page, {int? surah, int? verse}) =>
+                        _jumpToPage(page, highlightSurah: surah, highlightVerse: verse),
+                  ),
                 ),
               ),
-            ),
             IconButton(
               icon: const Icon(Icons.bookmark_border),
               onPressed: () {
@@ -333,18 +334,18 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
         elevation: 0,
         flexibleSpace: Container(decoration: appBarDecoration),
         actions: [
-          if (kIsWeb)
-            ValueListenableBuilder(
-              valueListenable: _highlightedVerseNotifier,
-              builder: (context, highlight, _) {
-                if (highlight == null) return const SizedBox.shrink();
-                return IconButton(
-                  icon: const Icon(Icons.info_outline),
-                  tooltip: 'خيارات الآية',
-                  onPressed: () => _showVerseMenu(highlight.surah, highlight.verse),
-                );
-              },
-            ),
+          //if (kIsWeb)
+          ValueListenableBuilder(
+            valueListenable: _highlightedVerseNotifier,
+            builder: (context, highlight, _) {
+              if (highlight == null) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.info_outline),
+                tooltip: 'خيارات الآية',
+                onPressed: () => _showVerseMenu(highlight.surah, highlight.verse),
+              );
+            },
+          ),
           IconButton(
             onPressed: widget.settingsController.toggleTheme,
             icon: Icon(switch (widget.settingsController.themeMode) {

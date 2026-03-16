@@ -53,6 +53,7 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
   void initState() {
     super.initState();
     _syncCategory();
+    _toggleWords();
   }
 
   void _syncCategory() {
@@ -200,7 +201,7 @@ class _VerseMenuDialogState extends State<VerseMenuDialog> {
       final url = Uri.parse(
         'https://quranenc.com/api/v1/translation/aya/arabic_seraj/'
         '${widget.surah}/${widget.verse.number}',
-      );
+      ); //english_rwwad == arabic_seraj
       final response = await http.get(url).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
